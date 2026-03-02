@@ -1,4 +1,4 @@
-package com.glowai.app;
+package com.courtaide.app;
 
 import com.getcapacitor.BridgeActivity;
 
