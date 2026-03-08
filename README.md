@@ -15,6 +15,18 @@ CourtAide is a fully agentic mobile app that puts a team of AI legal tools in yo
 
 ---
 
+## About the Developer
+
+Prompt Engineer with hands-on experience shipping production AI apps using Anthropic Claude API, including LLM agents for fraud detection, facial recognition (YOLOv8, 95% acc), and RAG workflows.
+Skilled in prompt engineering best practices: chain-of-thought, XML structuring, self-correction, and tool-calling for reliable outputs.
+
+IBM AI Engineering Cert (Coursera) | Python, PyTorch, Android Studio | GitHub: [github.com/808cadger](https://github.com/808cadger) (3 live Claude-powered prototypes).
+Hawaii-based (Pearl City), available for remote/full-time/contract (20–40 hrs/wk). Eager to optimize prompts for evals, safety, or product features at innovative teams.
+
+Let's connect — happy to demo Claude agents or refine your prompts.
+
+---
+
 ## Features
 
 ### Agentic AI Core
