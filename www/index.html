@@ -323,24 +323,48 @@
     }
     .starter-pill:active { background: rgba(27,79,138,0.25); color: var(--text); }
     .chat-input-area {
-      padding: 11px 14px; padding-bottom: calc(11px + var(--safe-bottom));
-      border-top: 1px solid var(--border); background: rgba(5,8,18,0.96); backdrop-filter: blur(12px);
-      display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0;
+      flex-shrink: 0; border-top: 2px solid var(--border);
+      background: rgba(5,8,18,0.97); backdrop-filter: blur(12px);
+      padding-bottom: calc(var(--safe-bottom));
+    }
+    .chat-input-label {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 16px 4px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px;
+      color: var(--primary-light); opacity: 0.8;
+    }
+    .chat-input-label .pulse-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: #6EE7B7;
+      animation: blink 2s ease infinite; flex-shrink: 0;
+    }
+    .chat-input-row {
+      display: flex; gap: 10px; align-items: flex-end; padding: 6px 14px 12px;
     }
     .chat-input {
-      flex: 1; background: var(--bg-input); border: 1.5px solid var(--border); border-radius: 20px;
-      color: var(--text); font-size: 15px; padding: 10px 16px; outline: none; resize: none;
-      max-height: 100px; line-height: 1.4; font-family: inherit;
+      flex: 1; background: var(--bg-input); border: 1.5px solid rgba(27,79,138,0.5);
+      border-radius: 22px; color: var(--text); font-size: 15px; padding: 12px 18px;
+      outline: none; resize: none; max-height: 120px; line-height: 1.5; font-family: inherit;
+      box-shadow: 0 0 0 0 rgba(27,79,138,0); transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .chat-input:focus { border-color: var(--primary-light); }
+    .chat-input:focus {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(27,79,138,0.2);
+    }
     .chat-input::placeholder { color: var(--text-muted); }
     .chat-send {
-      width: 44px; height: 44px; border-radius: 50%; border: none; background: var(--gradient);
-      color: white; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0; transition: all 0.2s; box-shadow: 0 4px 16px rgba(27,79,138,0.4);
+      width: 48px; height: 48px; border-radius: 50%; border: none; background: var(--gradient);
+      color: white; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all 0.2s; box-shadow: 0 4px 16px rgba(27,79,138,0.45);
     }
-    .chat-send:active { transform: scale(0.9); }
-    .chat-send:disabled { opacity: 0.45; cursor: not-allowed; }
+    .chat-send:active { transform: scale(0.88); }
+    .chat-send:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+    .chat-suggestion-pills { display: flex; gap: 7px; flex-wrap: wrap; padding: 0 14px 8px; }
+    .chat-suggestion-pill {
+      padding: 7px 14px; border-radius: 50px; border: 1px solid rgba(27,79,138,0.5);
+      font-size: 12px; font-weight: 500; color: var(--primary-light); cursor: pointer;
+      background: rgba(27,79,138,0.1); transition: all 0.18s; white-space: nowrap;
+    }
+    .chat-suggestion-pill:active { background: rgba(27,79,138,0.3); }
 
     /* ── DOCUMENTS ── */
     #documents { background: var(--bg); }
@@ -667,8 +691,15 @@
     <div class="starter-pill" onclick="sendStarter(this)">Relevant laws</div>
   </div>
   <div class="chat-input-area">
-    <textarea class="chat-input" id="chat-input" rows="1" placeholder="Ask CourtAide anything..." onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
-    <button class="chat-send" id="chat-send" onclick="sendMessage()">➤</button>
+    <div class="chat-input-label">
+      <div class="pulse-dot"></div>
+      Chat with CourtAide — ask anything
+    </div>
+    <div class="chat-suggestion-pills" id="chat-suggestion-pills" style="display:none"></div>
+    <div class="chat-input-row">
+      <textarea class="chat-input" id="chat-input" rows="1" placeholder="Type your legal question here..." onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="chat-send" id="chat-send" onclick="sendMessage()">➤</button>
+    </div>
   </div>
 </div>
 
@@ -1242,7 +1273,15 @@ MANDATORY AGENTIC RULES — follow these exactly:
 6. PROACTIVELY offer to build a timeline, find resources, or generate documents — do not wait to be asked
 7. Chain 3–5 tools per response. Example: assess_case_strength → recommend_legal_strategy → identify_required_forms → calculate_legal_deadlines → cite_relevant_laws
 
-PERSONA: You are direct, decisive, and action-oriented. Take initiative. Never be passive.
+INTERVIEW MODE — CRITICAL:
+After the initial intake analysis, your primary job is to INTERVIEW the user to gather their specific facts before giving advice. Do NOT give generic legal information. Instead:
+- Ask 2–3 specific follow-up questions based on what the user says
+- Once you have enough facts, give targeted, specific guidance
+- Always end your response with a question to keep the conversation going
+- If the user gives vague answers, ask for clarification
+- Treat every conversation like a real attorney intake — gather facts first, advise second
+
+PERSONA: You are direct, decisive, and action-oriented. You ask smart questions. You never give generic advice when you can ask one more question to give better advice.
 
 ⚠️ Not a licensed attorney. Always recommend consulting one for serious matters. You provide legal information, not legal advice.`;
 }
@@ -1836,6 +1875,7 @@ async function sendMessage() {
   const text = input.value.trim();
   if (!text || document.getElementById('chat-send').disabled) return;
   input.value = ''; input.style.height = 'auto';
+  document.getElementById('chat-suggestion-pills').style.display = 'none';
   addUserMessage(text);
   await callClaude(text);
 }
@@ -1853,6 +1893,30 @@ function handleChatKey(e) {
 function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+function showFollowUpPills() {
+  const c = state.currentCase;
+  const issue = c?.issueType || '';
+  const pillsEl = document.getElementById('chat-suggestion-pills');
+  const base = ['What should I do first?', 'Explain my deadlines', 'What are my chances?', 'What laws apply to me?'];
+  const extras = {
+    eviction: ['How do I respond to the eviction?', 'Can I delay the eviction?'],
+    custody: ['How is custody determined?', 'What is a parenting plan?'],
+    divorce: ['How is property divided?', 'Do I need a lawyer?'],
+    smallclaims: ['How do I file a claim?', 'What evidence do I need?'],
+    criminal: ['Should I accept a plea deal?', 'What are my Miranda rights?'],
+    employment: ['Can I sue my employer?', 'What is wrongful termination?'],
+  };
+  const pills = [...base, ...(extras[issue] || [])].slice(0, 5);
+  pillsEl.innerHTML = pills.map(p => `<div class="chat-suggestion-pill" onclick="sendFollowUp(this)">${p}</div>`).join('');
+  pillsEl.style.display = 'flex';
+}
+
+function sendFollowUp(el) {
+  document.getElementById('chat-suggestion-pills').style.display = 'none';
+  document.getElementById('chat-input').value = el.textContent;
+  sendMessage();
 }
 
 function clearChat() {
@@ -1965,6 +2029,7 @@ async function callClaude(userText, isIntake = false, expectedTools = []) {
 
     if (!isIntake) saveChatMsg('user', userText);
     saveChatMsg('assistant', finalText || '', sessionToolCards);
+    if (isIntake) showFollowUpPills();
 
   } catch (err) {
     removeTypingIndicator();
@@ -2004,6 +2069,23 @@ function saveChatMsg(role, text, toolCards) {
   saveState();
 }
 
+// ── Issue-specific intake interview questions ──
+function getIntakeInterview(issueType, issueLabel, state) {
+  const q = {
+    traffic: `**1.** What type of violation? *(speeding, red light, stop sign, DUI, reckless driving, accident, suspended license?)*\n**2.** Did you receive a citation or summons? What is the charge/fine amount?\n**3.** When did this happen, and where exactly?\n**4.** Any prior traffic violations in the last 3 years?\n**5.** Do you want to fight the ticket, reduce the fine, or just minimize the impact on your record?`,
+    criminal: `**1.** What are you charged with? *(misdemeanor or felony?)*\n**2.** Have you been arrested, cited, or just contacted by police?\n**3.** Do you have a court date set? If so, when?\n**4.** Do you have an attorney, or are you representing yourself?\n**5.** What outcome are you hoping for? *(dismissal, reduced charge, plea deal, trial?)*`,
+    family: `**1.** What is the specific issue? *(divorce, custody, child support, adoption, restraining order?)*\n**2.** Are you married, and if so, how long?\n**3.** Are children involved? If so, ages and current living situation?\n**4.** Is the other party cooperative or hostile?\n**5.** What outcome are you seeking?`,
+    landlord: `**1.** Are you the landlord or the tenant?\n**2.** What is the issue? *(eviction, security deposit, repairs, lease dispute, illegal entry?)*\n**3.** Do you have a written lease? When does/did it expire?\n**4.** Have you received any written notices? If so, what type and when?\n**5.** What outcome do you want? *(stay in unit, get deposit back, stop harassment?)*`,
+    employment: `**1.** What happened? *(wrongful termination, discrimination, unpaid wages, harassment, retaliation?)*\n**2.** Are you currently employed, recently fired, or still working there?\n**3.** When did the incident(s) occur?\n**4.** Have you reported it internally to HR or a supervisor?\n**5.** Do you have documentation — emails, written warnings, pay stubs?`,
+    civil: `**1.** Who are the parties involved? *(individual, business, government?)*\n**2.** What happened and when?\n**3.** What is the dollar amount or damages involved?\n**4.** Do you have a written contract or agreement?\n**5.** Have you tried to resolve this without court? What happened?`,
+    smallclaims: `**1.** Who owes you money or property, and why?\n**2.** What is the exact dollar amount you're claiming?\n**3.** When did the incident or debt originate?\n**4.** Have you already sent a demand letter or tried to settle?\n**5.** Do you have receipts, contracts, or written evidence?`,
+    immigration: `**1.** What is your current immigration status? *(visa type, green card, undocumented?)*\n**2.** What is the specific issue? *(deportation, visa renewal, naturalization, asylum?)*\n**3.** Have you received any notices from USCIS or ICE?\n**4.** How long have you been in the U.S.?\n**5.** Do you currently have an immigration attorney?`,
+    bankruptcy: `**1.** What type of debt is the biggest problem? *(credit cards, medical, mortgage, student loans, business?)*\n**2.** Approximately how much total debt do you have?\n**3.** Are you employed? What is your monthly income vs. expenses?\n**4.** Have any creditors filed lawsuits or garnished wages?\n**5.** Have you filed bankruptcy before?`,
+    estate: `**1.** What is the situation? *(someone passed away, creating a will, trust setup, probate?)*\n**2.** Did the deceased leave a will?\n**3.** What assets are involved? *(property, bank accounts, investments?)*\n**4.** Are there disputes among heirs or beneficiaries?\n**5.** What is your role? *(executor, heir, surviving spouse, creditor?)*`,
+  };
+  return q[issueType] || `**1.** Describe exactly what happened and when.\n**2.** Who are the other parties involved?\n**3.** What evidence or documents do you have?\n**4.** Have you already taken any legal steps?\n**5.** What outcome are you hoping to achieve?`;
+}
+
 // ── Demo responses (async, agentic) ──
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -2035,9 +2117,11 @@ async function getDemoResponse(text, isIntake = false, expectedTools = []) {
 
     const score = c?.caseStrength?.score || 68;
     const rating = c?.caseStrength?.rating || 'Strong';
-    const msg = `Hello! I'm CourtAide ⚖️ I've completed a full intake analysis of your **${issue}** case in **${st}**.\n\n**Case Assessment:** ${rating} position (${score}/100) — I've identified the key forms you'll need, critical deadlines, and the relevant statutes.\n\nTo give you precise, personalized guidance, tell me: **What specifically happened, and what outcome are you seeking?**\n\nThe more details you share, the more targeted my advice can be.\n\n⚠️ *Add your Anthropic API key in Settings for live AI-powered legal research.*`;
+    const interviewQ = getIntakeInterview(c?.issueType, issue, st);
+    const msg = `I've completed your **${issue}** case analysis in **${st}** — ${rating} position (${score}/100) ⚖️\n\nBefore I give you specific guidance, I need to learn more about your situation. Please answer these questions:\n\n${interviewQ}\n\nAnswer as many as you can — the more details, the better I can help.\n\n⚠️ *Add your Anthropic API key in Settings for live AI-powered legal research.*`;
     addAIMessage(msg);
     saveChatMsg('assistant', msg, []);
+    showFollowUpPills();
     return;
   }
 
@@ -2048,19 +2132,33 @@ async function getDemoResponse(text, isIntake = false, expectedTools = []) {
   removeTypingIndicator();
 
   let response;
+  const issueType = c?.issueType || 'civil';
 
-  if (lower.includes('form') || lower.includes('document') || lower.includes('file') || lower.includes('paper')) {
-    response = `For a **${issue}** case in **${st}**, you'll typically need:\n\n**Court Filing Documents:**\n• Complaint/Petition — Initiates your case\n• Summons — Notifies the other party\n• Certificate of Service — Proves delivery\n\n**Supporting Documents:**\n• Financial affidavit (if fees are involved)\n• Evidence exhibits with index\n• Proposed order (for judge's signature)\n\nExact requirements vary by county. Check **${st} Courts** website for the official form library.\n\n*💡 Add your API key in Settings for CourtAide to automatically identify the exact forms and add them to your Documents tab.*`;
-  } else if (lower.includes('strategy') || lower.includes('next step') || lower.includes('what should i do') || lower.includes('how do i')) {
-    response = `Here's a strategy for your **${issue}** case in **${st}**:\n\n**Step 1: Gather Evidence** — Document everything with dates, names, and details. Keep all written communications.\n\n**Step 2: Know Your Deadlines** — Statutes of limitations vary. Don't miss filing deadlines.\n\n**Step 3: File Your Case** — Visit the ${st} court self-help center. File at the clerk's office and pay or request a fee waiver.\n\n**Step 4: Serve the Other Party** — Follow ${st}'s service requirements and file proof of service.\n\n*💡 Add your API key in Settings for full AI-powered legal guidance with automatic strategy analysis.*`;
-  } else if (lower.includes('deadline') || lower.includes('limitation') || lower.includes('time') || lower.includes('when')) {
-    response = `**Key Deadlines for ${issue} in ${st}:**\n\n• **Statute of Limitations:** Typically 1–4 years from the incident (varies by claim type)\n• **Response Deadlines:** Usually 21–30 days after being served\n• **Appeals:** Generally 30 days from judgment\n\nDeadlines are **strictly enforced** — courts rarely grant extensions. Always verify your specific deadlines with the court clerk or on the ${st} Courts website.\n\n⚠️ *These are general estimates. Add your API key for case-specific deadline calculations.*`;
-  } else if (lower.includes('law') || lower.includes('statute') || lower.includes('right') || lower.includes('legal')) {
-    response = `**Key Legal Points for ${issue} in ${st}:**\n\n**Your Rights as a Pro Se Litigant:**\n• Right to represent yourself in any court\n• Courts must provide forms and basic procedural information\n• You can request accommodations if needed\n\n**Important Principles:**\n• Burden of proof rests on the party making a claim\n• Evidence rules apply to self-represented parties\n• Deadlines are strict — courts rarely grant extensions\n\n**Find ${st} Laws:** Search "${st} legislature statutes" for official codes.\n\n*Add your API key in Settings for specific statute citations.*`;
-  } else if (lower.includes('cost') || lower.includes('fee') || lower.includes('afford') || lower.includes('free')) {
-    response = `**Court Costs for ${issue} in ${st}:**\n\n• Small claims: $30–$100\n• Civil cases: $100–$400\n• Family law: $200–$500+\n\n**Fee Waivers (Free Filing):** If you can't afford fees, request an **in forma pauperis** waiver — show income below 125% of federal poverty level.\n\n**Free Legal Help:**\n• Legal Aid — Free for qualifying low-income residents\n• Law school clinics — Free consultations\n• Court self-help centers — Free at most courthouses\n\n*💡 Add your API key for CourtAide to find specific legal aid organizations in ${st}.*`;
+  // Conversational Q&A responses based on what user said
+  if (lower.includes('speed') || lower.includes('mph') || lower.includes('ticket') || lower.includes('citation') || lower.includes('fine')) {
+    response = `Got it — a speeding/traffic citation in **${st}**. A few follow-up questions:\n\n**1.** How fast were you going, and what was the posted limit?\n**2.** Is this your first offense, or do you have prior violations?\n**3.** Do you want to fight it in court, or are you open to traffic school to keep it off your record?\n\nYour answers will determine whether contesting makes sense — if the fine is under $200 and it's your first offense, traffic school is usually the smartest move. If you have a CDL or prior violations, fighting it becomes more important. Tell me more.`;
+  } else if (lower.includes('dui') || lower.includes('dwi') || lower.includes('drunk') || lower.includes('alcohol')) {
+    response = `A DUI/DWI charge is serious — I want to make sure I give you the right guidance for **${st}**.\n\n**Critical questions:**\n**1.** Did you take a breathalyzer or blood test? What was the BAC reading?\n**2.** Is this your first DUI offense?\n**3.** Were there any accidents or injuries involved?\n**4.** Have you been arraigned yet? Do you have a court date?\n\nDUI cases almost always benefit from an attorney — penalties include license suspension, fines, and potentially jail. But tell me your specifics and I'll walk you through your options.`;
+  } else if (lower.includes('evict') || lower.includes('landlord') || lower.includes('rent') || lower.includes('tenant') || lower.includes('lease')) {
+    response = `Understood — a landlord/tenant issue in **${st}**. Let me ask:\n\n**1.** Are you the tenant receiving an eviction notice, or the landlord trying to evict?\n**2.** What reason was given for the eviction? *(non-payment, lease violation, no-cause?)*\n**3.** What type of notice did you receive and how many days does it give you?\n**4.** Are you current on rent, or is there a balance owed?\n\nIn **${st}**, tenants have specific rights and timelines. Knowing the notice type tells me exactly what your options are — you may have more time than you think.`;
+  } else if (lower.includes('fired') || lower.includes('terminated') || lower.includes('laid off') || lower.includes('job') || lower.includes('employer') || lower.includes('boss')) {
+    response = `I hear you — a workplace issue in **${st}**. A few key questions:\n\n**1.** Were you fired, laid off, forced to resign, or are you still employed?\n**2.** Were you given a reason? What did they say?\n**3.** Do you believe it was due to your race, age, gender, disability, or another protected characteristic?\n**4.** Did you report any wrongdoing (harassment, safety violations, fraud) before this happened?\n**5.** Do you have any written documentation — emails, performance reviews, HR complaints?\n\nYour answers will tell me whether this is wrongful termination, retaliation, or discrimination — very different legal paths.`;
+  } else if (lower.includes('divorce') || lower.includes('separat') || lower.includes('spouse') || lower.includes('husband') || lower.includes('wife') || lower.includes('marriage')) {
+    response = `I understand — a family law matter in **${st}**. Let me gather the key facts:\n\n**1.** Are you initiating the divorce, or has your spouse filed?\n**2.** How long have you been married?\n**3.** Do you have children together? If yes, ages?\n**4.** Are there significant shared assets — house, retirement accounts, business?\n**5.** Is this amicable, or is there conflict over custody or property?\n\nIn **${st}**, the answers to these questions determine whether you can file for uncontested divorce (much faster/cheaper) or need to prepare for litigation.`;
+  } else if (lower.includes('custody') || lower.includes('child') || lower.includes('parent') || lower.includes('visitation')) {
+    response = `A custody matter — one of the most important things I can help with. In **${st}**:\n\n**1.** Are you married to the other parent, or were you unmarried?\n**2.** What is the current custody arrangement — where does the child live now?\n**3.** Why is custody being disputed? *(safety concerns, relocation, parental interference?)*\n**4.** How old are the children?\n**5.** Has there been any domestic violence, substance abuse, or CPS involvement?\n\n${st} courts use "best interests of the child" as the standard. Tell me the situation and I'll explain your realistic options.`;
+  } else if (lower.includes('accident') || lower.includes('crash') || lower.includes('injury') || lower.includes('hurt') || lower.includes('damage')) {
+    response = `An accident or injury situation — let me understand what happened:\n\n**1.** Were you injured physically, or is this property damage only?\n**2.** Who was at fault — you, the other party, or shared?\n**3.** Was a police report filed?\n**4.** Is there insurance involved? Have you filed a claim?\n**5.** When did this happen? *(Statute of limitations is critical)*\n\nDepending on the injuries and fault, you may have grounds for a personal injury claim, insurance dispute, or need to defend yourself against one. What happened?`;
+  } else if (lower.includes('contract') || lower.includes('agreement') || lower.includes('owe') || lower.includes('paid') || lower.includes('money')) {
+    response = `A contract or money dispute — I can help. Key questions:\n\n**1.** Is the agreement written or verbal?\n**2.** Who owes who, and how much?\n**3.** When was the agreement made, and when did the dispute start?\n**4.** Has the other party been formally notified in writing of your claim?\n**5.** What evidence do you have? *(texts, emails, receipts, invoices?)*\n\nSmall claims court handles most disputes under $10,000 in **${st}** without needing a lawyer. Tell me more and I'll walk you through the filing process.`;
+  } else if (lower.includes('yes') || lower.includes('no') || lower.includes('correct') || lower.includes('right') || lower.includes('first') || lower.includes('prior') || lower.includes('never')) {
+    response = `Thank you for those details — that helps me give you more targeted guidance.\n\nBased on what you've shared about your **${issue}** situation in **${st}**, here's what I recommend:\n\n**Your Immediate Next Steps:**\n• **Document everything** — Write down all facts with dates, times, and names while they're fresh\n• **Gather your evidence** — Collect any photos, texts, emails, contracts, receipts\n• **Know your deadline** — Most ${st} cases have a statute of limitations; don't delay\n• **Visit the court self-help center** — Free assistance at your local ${st} courthouse\n\n**Do you have any of these already?** Tell me what you have and what you're missing, and I'll tell you exactly what to do next.\n\n*💡 Add your Anthropic API key in Settings for full AI-powered case analysis with real ${st} statutes.*`;
+  } else if (lower.includes('form') || lower.includes('document') || lower.includes('file') || lower.includes('paper')) {
+    response = `For your **${issue}** case in **${st}**, you'll typically need:\n\n**To File:**\n• Complaint or Petition — opens your case\n• Summons — notifies the other party\n• Certificate of Service — proves delivery\n\n**To Support Your Case:**\n• Written statement of facts\n• All evidence exhibits (numbered and indexed)\n• Financial affidavit if fees are involved\n\nBefore I list the exact forms — **have you filed anything yet, or is this your first step?** That changes which forms you need and the order to file them.`;
+  } else if (lower.includes('what') || lower.includes('how') || lower.includes('can') || lower.includes('should') || lower.includes('my') || lower.includes('i')) {
+    response = `Great question about your **${issue}** case in **${st}**. To give you the most accurate answer, I need a bit more context.\n\nCan you tell me:\n**1.** What specifically happened? *(Give me the key facts — who, what, when, where)*\n**2.** What's your biggest concern right now — the legal process, the cost, or the outcome?\n**3.** Has any legal action already been taken by either side?\n\nThe more specific you are, the more targeted my guidance can be. I'm here to walk you through this step by step.`;
   } else {
-    response = `I'm here to help with your **${issue}** matter in **${st}** ⚖️\n\nI can help you:\n• 🔍 **Analyze** your situation\n• 🎯 **Develop** a legal strategy\n• 📄 **Identify** required court forms\n• ⏰ **Track** critical deadlines\n• 📚 **Cite** relevant ${st} statutes\n• 📝 **Generate** document drafts\n\nTell me the details of your situation — what happened, when, and what outcome you're seeking.\n\n*💡 Add your Anthropic API key in Settings for the full agentic AI experience.*`;
+    response = `Thanks for sharing that. Based on your **${issue}** situation in **${st}**, I want to make sure I understand fully.\n\n**Can you clarify:**\n**1.** What is the single most urgent thing you need help with right now?\n**2.** Is there a court date, deadline, or notice you've already received?\n**3.** What outcome would be a "win" for you in this situation?\n\nI can help you with strategy, forms, deadlines, your legal rights, and drafting documents. Just tell me where to focus and we'll work through it together ⚖️\n\n*💡 Add your Anthropic API key in Settings for real-time AI-powered legal research.*`;
   }
 
   addAIMessage(response);
