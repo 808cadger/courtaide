@@ -838,10 +838,11 @@ const ISSUE_CATEGORIES = [
 // ══════════════════════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════════════════════
+const tryParse = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch(e) { return fallback; } };
 const state = {
-  profile:          JSON.parse(localStorage.getItem('courtaide_profile') || 'null'),
-  currentCase:      JSON.parse(localStorage.getItem('courtaide_current_case') || 'null'),
-  cases:            JSON.parse(localStorage.getItem('courtaide_cases') || '[]'),
+  profile:          tryParse('courtaide_profile', null),
+  currentCase:      tryParse('courtaide_current_case', null),
+  cases:            tryParse('courtaide_cases', []),
   apiKey:           localStorage.getItem('courtaide_apikey') || '',
   biometricEnabled: localStorage.getItem('courtaide_biometric') === 'true',
   authenticated:    false,
@@ -1154,7 +1155,7 @@ function runAutoIntake() {
   addSystemMessage('⚡ Running full case intake…');
   const tools = ['assess_case_strength','recommend_legal_strategy','identify_required_forms','calculate_legal_deadlines','cite_relevant_laws'];
   const prompt = `New ${c.issueLabel} case in ${c.caseState}. Run a full intake: use assess_case_strength, recommend_legal_strategy, identify_required_forms, calculate_legal_deadlines, and cite_relevant_laws. Then greet the user warmly, give a quick summary of the case landscape, and ask for their specific facts.`;
-  callClaude(prompt, true, tools);
+  callClaude(prompt, true, tools).catch(e => console.error('Auto intake failed:', e));
 }
 
 function runFullAnalysis() {
@@ -1164,7 +1165,7 @@ function runFullAnalysis() {
   addSystemMessage('⚡ Re-running full case analysis…');
   const tools = ['assess_case_strength','recommend_legal_strategy','identify_required_forms','calculate_legal_deadlines','cite_relevant_laws'];
   const prompt = `Re-analyze this ${c.issueLabel} case in ${c.caseState} with the full intake pipeline: assess_case_strength, recommend_legal_strategy, identify_required_forms, calculate_legal_deadlines, cite_relevant_laws. Update all assessments based on the conversation so far, then provide a brief updated summary.`;
-  callClaude(prompt, true, tools);
+  callClaude(prompt, true, tools).catch(e => console.error('Full analysis failed:', e));
 }
 
 function loadCase(id) {
@@ -1870,29 +1871,38 @@ async function callClaude(userText, isIntake = false, expectedTools = []) {
   const apiMessages = buildApiMessages(userText, isIntake);
 
   try {
-    let response = await fetch(CLAUDE_API, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': state.apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 4096,
-        system: systemPrompt,
-        tools: LEGAL_TOOLS,
-        messages: apiMessages
-      })
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    let response;
+    try {
+      response = await fetch(CLAUDE_API, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': state.apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          max_tokens: 4096,
+          system: systemPrompt,
+          tools: LEGAL_TOOLS,
+          messages: apiMessages
+        })
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!response.ok) {
-      const err = await response.json();
+      const err = await response.json().catch(() => ({}));
       throw new Error(err.error?.message || 'API error ' + response.status);
     }
 
     let data = await response.json();
+    if (!data.content || !Array.isArray(data.content)) throw new Error('Unexpected API response');
     removeTypingIndicator();
 
     const sessionToolCards = [];
@@ -1940,6 +1950,7 @@ async function callClaude(userText, isIntake = false, expectedTools = []) {
       });
       if (!response.ok) throw new Error('API continuation error');
       data = await response.json();
+      if (!data.content || !Array.isArray(data.content)) throw new Error('Unexpected API response in loop');
       removeTypingIndicator();
     }
 
