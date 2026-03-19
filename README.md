@@ -2,8 +2,8 @@ https://www.youtube.com/shorts/7VNHmQlBuHY
 
 # CourtAide ⚖️
 
-[![GitHub last commit](https://img.shields.io/github/last-commit/808cadger/courtaide)](https://github.com/808cadger/courtaide/commits/main)
-[![GitHub repo size](https://img.shields.io/github/repo-size/808cadger/courtaide)](https://github.com/808cadger/courtaide)
+[![GitHub last commit](https://img.shields.io/gitea/last-commit/cadger808/courtaide)](https://codeberg.org/cadger808/courtaide/commits/main)
+[![GitHub repo size](https://img.shields.io/github/repo-size/808cadger/courtaide)](https://codeberg.org/cadger808/courtaide)
 [![Capacitor](https://img.shields.io/badge/Capacitor-119EFF?logo=capacitor&logoColor=white)](https://capacitorjs.com/)
 [![Claude AI](https://img.shields.io/badge/Claude_AI-Anthropic-D97706?logo=anthropic&logoColor=white)](https://anthropic.com/)
 [![Android](https://img.shields.io/badge/Android-SDK_34-3DDC84?logo=android&logoColor=white)](https://developer.android.com/)
@@ -20,7 +20,7 @@ CourtAide is a fully agentic mobile app that puts a team of AI legal tools in yo
 Prompt Engineer with hands-on experience shipping production AI apps using Anthropic Claude API, including LLM agents for fraud detection, facial recognition (YOLOv8, 95% acc), and RAG workflows.
 Skilled in prompt engineering best practices: chain-of-thought, XML structuring, self-correction, and tool-calling for reliable outputs.
 
-IBM AI Engineering Cert (Coursera) | Python, PyTorch, Android Studio | GitHub: [github.com/808cadger](https://github.com/808cadger) (3 live Claude-powered prototypes).
+IBM AI Engineering Cert (Coursera) | Python, PyTorch, Android Studio | GitHub: [codeberg.org/cadger808](https://codeberg.org/cadger808) (3 live Claude-powered prototypes).
 Hawaii-based (Pearl City), available for remote/full-time/contract (20–40 hrs/wk). Eager to optimize prompts for evals, safety, or product features at innovative teams.
 
 Let's connect — happy to demo Claude agents or refine your prompts.
@@ -113,7 +113,7 @@ User requests a document → generate_legal_document → View Draft in Documents
 
 ```bash
 # Clone the repo
-git clone https://github.com/808cadger/courtaide.git
+git clone https://codeberg.org/cadger808/courtaide.git
 cd courtaide
 
 # Install dependencies
