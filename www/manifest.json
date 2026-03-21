@@ -2,12 +2,12 @@
   "name": "CourtAide",
   "short_name": "CourtAide",
   "description": "AI-powered legal assistant for court procedures and pro se representation",
-  "start_url": "/index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#1B4F8A",
   "background_color": "#050A14",
-  "scope": "/",
+  "scope": "./",
   "icons": [
     {
       "src": "icons/icon-192.png",

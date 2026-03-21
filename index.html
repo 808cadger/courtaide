@@ -1882,7 +1882,7 @@ async function callClaude(userText, isIntake = false, expectedTools = []) {
           'Content-Type': 'application/json',
           'x-api-key': state.apiKey,
           'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
+          'anthropic-dangerous-direct-browser-calls': 'true'
         },
         body: JSON.stringify({
           model: MODEL,
@@ -1938,7 +1938,7 @@ async function callClaude(userText, isIntake = false, expectedTools = []) {
           'Content-Type': 'application/json',
           'x-api-key': state.apiKey,
           'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
+          'anthropic-dangerous-direct-browser-calls': 'true'
         },
         body: JSON.stringify({
           model: MODEL,
@@ -2145,7 +2145,7 @@ function getDemoToolInput(toolName, c) {
       state: st, issue_type: label, need_free_help: true,
       resources: [
         { name: st + ' Legal Aid', type: 'Legal Aid', description: 'Free civil legal help for low-income residents', contact: 'Search "' + st + ' Legal Aid" online' },
-        { name: st + ' Courts Self-Help Center', type: 'Court Self-Help', description: 'Free forms and procedural assistance at most courthouses', contact: st.toLowerCase().replace(' ','-') + '.courts.ca.gov' },
+        { name: st + ' Courts Self-Help Center', type: 'Court Self-Help', description: 'Free forms and procedural assistance at most courthouses', contact: 'Search "' + st + ' court self-help center" online' },
         { name: st + ' State Bar Lawyer Referral', type: 'Bar Referral', description: 'Find a local attorney — first consultation often free or low-cost', contact: 'calbar.ca.gov' }
       ]
     }
@@ -2309,7 +2309,7 @@ boot();
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("/sw.js")
+        navigator.serviceWorker.register("./sw.js")
           .then(r => console.log("SW registered:", r.scope))
           .catch(e => console.error("SW error:", e));
       });
