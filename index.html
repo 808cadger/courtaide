@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.anthropic.com;">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>CourtAide</title>
@@ -1871,37 +1872,13 @@ async function callClaude(userText, isIntake = false, expectedTools = []) {
   const apiMessages = buildApiMessages(userText, isIntake);
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
-    let response;
-    try {
-      response = await fetch(CLAUDE_API, {
-        method: 'POST',
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': state.apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-calls': 'true'
-        },
-        body: JSON.stringify({
-          model: MODEL,
-          max_tokens: 4096,
-          system: systemPrompt,
-          tools: LEGAL_TOOLS,
-          messages: apiMessages
-        })
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error?.message || 'API error ' + response.status);
-    }
-
-    let data = await response.json();
+    let data = await ClaudeAPI.call(state.apiKey, {
+      model: MODEL,
+      max_tokens: 4096,
+      system: systemPrompt,
+      tools: LEGAL_TOOLS,
+      messages: apiMessages
+    });
     if (!data.content || !Array.isArray(data.content)) throw new Error('Unexpected API response');
     removeTypingIndicator();
 
@@ -2317,6 +2294,7 @@ boot();
   </script>
   <!-- AI Avatar Bot -->
   <div id="sw-avatar" data-context="AI legal assistant helping pro se litigants with court filings, motions, and legal strategy"></div>
+  <script src="./api-client.js"></script>
   <script src="./avatar-widget.js"></script>
 </body>
 </html>

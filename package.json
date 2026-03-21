@@ -34,6 +34,7 @@
     },
     "files": [
       "index.html",
+      "api-client.js",
       "manifest.json",
       "sw.js",
       "avatar-widget.js",
