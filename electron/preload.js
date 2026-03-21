@@ -3,8 +3,27 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 document.addEventListener('DOMContentLoaded', () => {
-  injectTitlebar({ color: '#C9A84C', bg: 'rgba(5,10,20,0.96)' })
+  injectTitlebar({ color: '#2563EB', bg: 'rgba(5,10,20,0.96)' })
+  injectDropZone()
 })
+
+function injectDropZone () {
+  document.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation() })
+  document.addEventListener('drop', e => {
+    e.preventDefault(); e.stopPropagation()
+    const file = e.dataTransfer?.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onerror = () => console.warn('CourtAide: FileReader error on dropped file')
+    if (file.type.startsWith('image/')) {
+      reader.onload = ev => window.dispatchEvent(new CustomEvent('electronImageDrop', { detail: { data: ev.target.result, type: 'image' } }))
+      reader.readAsDataURL(file)
+    } else if (file.type === 'application/pdf' || file.name.endsWith('.txt') || file.name.endsWith('.doc')) {
+      reader.onload = ev => window.dispatchEvent(new CustomEvent('electronFileDrop', { detail: { data: ev.target.result, name: file.name, type: 'document' } }))
+      reader.readAsText(file)
+    }
+  })
+}
 
 function injectTitlebar ({ color, bg }) {
   const bar = document.createElement('div')

@@ -149,6 +149,10 @@ ipcMain.handle('app:version', () => app.getVersion())
 autoUpdater.on('update-downloaded', () => { if (win) win.webContents.send('update:ready') })
 ipcMain.handle('update:install', () => { app.isQuitting = true; autoUpdater.quitAndInstall() })
 
+// GPU acceleration — must be set before app.whenReady()
+app.commandLine.appendSwitch('enable-gpu-rasterization')
+app.commandLine.appendSwitch('enable-zero-copy')
+
 app.whenReady().then(() => { createWindow(); createTray() })
 app.on('window-all-closed', e => e.preventDefault())
 app.on('before-quit', () => { app.isQuitting = true })
