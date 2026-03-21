@@ -1,138 +1,159 @@
 (function () {
+  'use strict';
 
-  /* ── API key discovery ─────────────────────────────────────────── */
+  /* ─── API key ──────────────────────────────────────────────────── */
   function getApiKey() {
-    // 1. App can set window.SWAvatarApiKey before loading this script
     if (window.SWAvatarApiKey) return window.SWAvatarApiKey;
-    // 2. Scan localStorage for any key starting with sk-ant-
     try {
-      var lsKeys = Object.keys(localStorage);
-      for (var i = 0; i < lsKeys.length; i++) {
-        var val = localStorage.getItem(lsKeys[i]);
-        if (val && val.startsWith('sk-ant-')) return val;
+      var keys = Object.keys(localStorage);
+      for (var i = 0; i < keys.length; i++) {
+        var v = localStorage.getItem(keys[i]);
+        if (v && v.startsWith('sk-ant-')) return v;
       }
     } catch (e) {}
     return '';
   }
 
-  function saveApiKey(key) {
-    try { localStorage.setItem('avatar_api_key', key); } catch (e) {}
-  }
-
-  /* ── App context ───────────────────────────────────────────────── */
-  function getAppContext() {
+  /* ─── Context ──────────────────────────────────────────────────── */
+  function getCtx() {
     var el = document.getElementById('sw-avatar');
     if (el && el.dataset.context) return el.dataset.context;
-    var meta = document.querySelector('meta[name="description"]');
-    if (meta) return meta.content;
-    return '';
+    var m = document.querySelector('meta[name="description"]');
+    return m ? m.content : '';
   }
-
   function getAppName() {
     var el = document.querySelector('meta[name="application-name"]');
     if (el) return el.content;
-    try {
-      var link = document.querySelector('link[rel="manifest"]');
-      if (!link) return document.title || 'this app';
-    } catch (e) {}
     return document.title || 'this app';
   }
 
-  /* ── Star Wars greetings (shown before any question) ───────────── */
-  var LINES = [
-    'Hello! How can I help you today?',
-    'Ask me anything — the Force is with us.',
-    'Ready to assist, young Padawan.',
-    'What do you need to know?',
-    'Your question is my mission.',
-    'Speak, and I shall answer.',
-    'The Force is strong — ask away.',
-    'Patience yields knowledge. Ask me!',
-  ];
-  var idx = -1;
-  function nextLine() {
-    var n; do { n = Math.floor(Math.random() * LINES.length); } while (n === idx);
-    idx = n; return LINES[n];
+  /* ─── Quick options (context-aware) ───────────────────────────── */
+  function getOptions() {
+    var ctx = getCtx().toLowerCase();
+    if (ctx.includes('skin') || ctx.includes('glow')) return [
+      'Analyze my skin type', 'Best morning routine', 'Top ingredients for me', 'What causes breakouts?'
+    ];
+    if (ctx.includes('job') || ctx.includes('resume') || ctx.includes('career')) return [
+      'Improve my resume', 'Interview tips', 'Salary negotiation', 'Cover letter help'
+    ];
+    if (ctx.includes('travel') || ctx.includes('booking')) return [
+      'Pack for my trip', 'Visa requirements', 'Best travel insurance', 'Local customs tips'
+    ];
+    if (ctx.includes('legal') || ctx.includes('court')) return [
+      'Explain this motion', 'Filing deadlines', 'What is discovery?', 'Pro se tips'
+    ];
+    if (ctx.includes('farm') || ctx.includes('crop')) return [
+      'Soil health tips', 'Pest control help', 'Best crops this season', 'Water schedule'
+    ];
+    if (ctx.includes('fraud')) return [
+      'Red flags to watch', 'Report fraud steps', 'Protect my accounts', 'Check this message'
+    ];
+    return [
+      'How does this work?', 'Give me a tip', 'What can you do?', 'Best features here'
+    ];
   }
 
-  /* ── CSS ───────────────────────────────────────────────────────── */
+  /* ─── Jedi greetings ───────────────────────────────────────────── */
+  var GREETS = [
+    'The Force is with you. How can I help?',
+    'Ask me anything, young Padawan.',
+    'Ready to assist. What do you need?',
+    'Your question is my command.',
+    'Much to learn, I can help.',
+    'Use the Force — or just ask me.',
+  ];
+  var _gi = -1;
+  function nextGreet() {
+    var n; do { n = Math.floor(Math.random() * GREETS.length); } while (n === _gi);
+    _gi = n; return GREETS[n];
+  }
+
+  /* ─── CSS ──────────────────────────────────────────────────────── */
   var CSS = [
-    '.swa{position:fixed;bottom:20px;right:16px;z-index:99999;display:flex;flex-direction:column;align-items:flex-end;gap:8px;font-family:sans-serif}',
-    '.swa-bubble{background:#0a0e1a;border:1px solid #4fc3f7;border-radius:12px 12px 3px 12px;color:#e3f2fd;font-size:9px;line-height:1.4;max-width:200px;padding:8px 10px;word-break:break-word;position:relative}',
-    '.swa-bubble:after{content:"";position:absolute;bottom:-8px;right:14px;border:4px solid transparent;border-top-color:#4fc3f7}',
-    '.swa-msg{display:block;margin-bottom:6px;min-height:10px}',
-    '.swa-bar{display:flex;align-items:center;gap:4px;background:rgba(79,195,247,0.1);border:1px solid rgba(79,195,247,0.35);border-radius:20px;padding:3px 7px}',
-    '.swa-bar input{flex:1;background:transparent;border:none;outline:none;color:#e3f2fd;font-size:9px;min-width:0;caret-color:#4fc3f7}',
-    '.swa-bar input::placeholder{color:rgba(179,229,252,0.4)}',
-    '.swa-go{background:none;border:none;color:#4fc3f7;font-size:11px;cursor:pointer;padding:0;line-height:1}',
-    '.swa-apirow{display:flex;align-items:center;gap:4px;margin-top:5px}',
-    '.swa-apirow input{flex:1;background:transparent;border:none;border-bottom:1px solid rgba(79,195,247,0.4);outline:none;color:#e3f2fd;font-size:8px;min-width:0;padding:2px 0}',
-    '.swa-apirow input::placeholder{color:rgba(179,229,252,0.3)}',
-    '.swa-apisave{background:none;border:none;color:#4fc3f7;font-size:9px;cursor:pointer;white-space:nowrap}',
-    '.swa-droid{width:60px;height:60px;cursor:pointer;filter:drop-shadow(0 0 8px rgba(79,195,247,0.5))}',
-    '@keyframes swa-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}',
-    '@keyframes swa-glow{0%,100%{opacity:1}50%{opacity:0.3}}',
-    '@keyframes swa-blink{0%,88%,100%{opacity:1}94%{opacity:0}}',
-    '.swa-droid{animation:swa-bob 3s ease-in-out infinite}',
-    '.swa-eye{animation:swa-glow 2s ease-in-out infinite}',
-    '.swa-ant{animation:swa-blink 2s ease-in-out infinite}',
-    '.swa-thinking{opacity:0.5;font-style:italic}',
+    /* wrapper — bottom-right corner */
+    '.jd{position:fixed;bottom:22px;right:18px;z-index:99999;display:flex;flex-direction:column;align-items:flex-end;gap:10px;font-family:-apple-system,BlinkMacSystemFont,"Inter",sans-serif}',
+
+    /* response bubble */
+    '.jd-bubble{background:#0a0e1a;border:1px solid #4fc3f7;border-radius:16px 16px 4px 16px;',
+    'color:#e3f2fd;font-size:12px;line-height:1.55;max-width:230px;padding:10px 13px;',
+    'word-break:break-word;box-shadow:0 4px 20px rgba(79,195,247,0.2);',
+    'animation:jdPop 0.22s cubic-bezier(0.34,1.56,0.64,1)}',
+    '.jd-bubble.hidden{display:none}',
+
+    /* option chips row */
+    '.jd-opts{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;max-width:260px;',
+    'animation:jdFade 0.2s ease}',
+    '.jd-opts.hidden{display:none}',
+    '.jd-opt{background:#0a0e1a;border:1px solid rgba(79,195,247,0.45);border-radius:20px;',
+    'color:#b3e5fc;font-size:10px;padding:5px 11px;cursor:pointer;white-space:nowrap;',
+    'transition:background 0.15s,border-color 0.15s;user-select:none}',
+    '.jd-opt:hover{background:rgba(79,195,247,0.1);border-color:#4fc3f7}',
+    '.jd-opt:active{transform:scale(0.94)}',
+
+    /* input row */
+    '.jd-row{display:flex;align-items:center;gap:7px;background:#0a0e1a;border:1px solid rgba(79,195,247,0.4);',
+    'border-radius:24px;padding:6px 6px 6px 13px;width:230px;',
+    'box-shadow:0 4px 16px rgba(79,195,247,0.15);animation:jdFade 0.2s ease}',
+    '.jd-row.hidden{display:none}',
+    '.jd-inp{flex:1;background:transparent;border:none;outline:none;color:#e3f2fd;font-size:11px;',
+    'caret-color:#4fc3f7;min-width:0}',
+    '.jd-inp::placeholder{color:rgba(179,229,252,0.35)}',
+    '.jd-send{width:28px;height:28px;border-radius:50%;background:#4fc3f7;border:none;',
+    'color:#0a0e1a;font-size:14px;font-weight:700;cursor:pointer;display:flex;',
+    'align-items:center;justify-content:center;flex-shrink:0;transition:transform 0.15s}',
+    '.jd-send:active{transform:scale(0.88)}',
+
+    /* droid icon — the main floating button */
+    '.jd-icon{width:52px;height:52px;border-radius:50%;background:#0a0e1a;',
+    'border:1.5px solid #4fc3f7;display:flex;align-items:center;justify-content:center;',
+    'cursor:pointer;box-shadow:0 0 16px rgba(79,195,247,0.35);',
+    'transition:box-shadow 0.2s,transform 0.2s;flex-shrink:0}',
+    '.jd-icon:hover{box-shadow:0 0 28px rgba(79,195,247,0.55)}',
+    '.jd-icon:active{transform:scale(0.9)}',
+    '.jd-icon.open{border-color:#4fc3f7;box-shadow:0 0 28px rgba(79,195,247,0.6)}',
+
+    /* thinking dots */
+    '.jd-dots{display:inline-flex;gap:3px;align-items:center;padding:2px 0}',
+    '.jd-dots span{width:5px;height:5px;border-radius:50%;background:#4fc3f7;',
+    'animation:jdBounce 1s ease-in-out infinite}',
+    '.jd-dots span:nth-child(2){animation-delay:0.15s}',
+    '.jd-dots span:nth-child(3){animation-delay:0.3s}',
+
+    /* animations */
+    '@keyframes jdPop{0%{opacity:0;transform:scale(0.85) translateY(8px)}100%{opacity:1;transform:scale(1) translateY(0)}}',
+    '@keyframes jdFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}',
+    '@keyframes jdBounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}',
+    '@keyframes jdBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}',
+    '.jd-icon{animation:jdBob 3s ease-in-out infinite}',
+    '.jd-icon.open{animation:none}',
   ].join('');
 
-  /* ── SVG droid ─────────────────────────────────────────────────── */
-  var SVG = '<svg width="60" height="74" viewBox="0 0 60 74" fill="none" xmlns="http://www.w3.org/2000/svg">'
-    + '<rect x="16" y="52" width="7" height="16" rx="3" fill="#90a4ae"/>'
-    + '<rect x="37" y="52" width="7" height="16" rx="3" fill="#90a4ae"/>'
-    + '<rect x="13" y="64" width="12" height="4" rx="2" fill="#607d8b"/>'
-    + '<rect x="35" y="64" width="12" height="4" rx="2" fill="#607d8b"/>'
-    + '<rect x="12" y="28" width="36" height="28" rx="7" fill="#1a237e"/>'
-    + '<rect x="12" y="28" width="36" height="28" rx="7" fill="url(#bg)"/>'
-    + '<line x1="19" y1="34" x2="19" y2="50" stroke="#4fc3f7" stroke-width="0.7" opacity="0.5"/>'
-    + '<line x1="41" y1="34" x2="41" y2="50" stroke="#4fc3f7" stroke-width="0.7" opacity="0.5"/>'
-    + '<circle cx="30" cy="42" r="4" fill="#4fc3f7" opacity="0.9"/>'
-    + '<circle cx="30" cy="42" r="2.5" fill="#e3f2fd"/>'
+  /* ─── SVG droid (compact) ──────────────────────────────────────── */
+  var DROID_SVG = '<svg width="30" height="36" viewBox="0 0 60 72" fill="none" xmlns="http://www.w3.org/2000/svg">'
+    + '<rect x="12" y="28" width="36" height="28" rx="7" fill="#0d1b2a"/>'
+    + '<rect x="12" y="28" width="36" height="28" rx="7" fill="url(#a)"/>'
+    + '<circle cx="30" cy="42" r="5" fill="#4fc3f7" opacity="0.9"/>'
+    + '<circle cx="30" cy="42" r="3" fill="#e3f2fd"/>'
     + '<path d="M12 26 Q12 8 30 8 Q48 8 48 26 Z" fill="#1565c0"/>'
-    + '<path d="M12 26 Q12 8 30 8 Q48 8 48 26 Z" fill="url(#dg)"/>'
-    + '<path d="M14 20 Q30 15 46 20" stroke="#4fc3f7" stroke-width="1.2" fill="none" opacity="0.5"/>'
-    + '<circle cx="30" cy="18" r="6" fill="#0d1b2a"/>'
-    + '<circle class="swa-eye" cx="30" cy="18" r="4" fill="#4fc3f7"/>'
-    + '<circle cx="30" cy="18" r="2.5" fill="#e3f2fd"/>'
-    + '<circle cx="28.5" cy="16.5" r="0.8" fill="white" opacity="0.8"/>'
-    + '<circle cx="17" cy="18" r="2" fill="#37474f"/><circle cx="17" cy="18" r="1.2" fill="#4fc3f7" opacity="0.7"/>'
-    + '<circle cx="43" cy="18" r="2" fill="#37474f"/><circle cx="43" cy="18" r="1.2" fill="#4fc3f7" opacity="0.7"/>'
+    + '<circle cx="30" cy="18" r="5" fill="#0d1b2a"/>'
+    + '<circle cx="30" cy="18" r="3.5" fill="#4fc3f7"/>'
+    + '<circle cx="30" cy="18" r="2" fill="#e3f2fd"/>'
+    + '<circle cx="28" cy="16.5" r="0.7" fill="white" opacity="0.8"/>'
     + '<line x1="30" y1="8" x2="30" y2="3" stroke="#78909c" stroke-width="1.5"/>'
-    + '<circle class="swa-ant" cx="30" cy="2" r="2" fill="#f44336"/>'
-    + '<rect x="6" y="32" width="6" height="16" rx="3" fill="#263238"/>'
-    + '<rect x="4" y="43" width="9" height="4" rx="2" fill="#37474f"/>'
-    + '<rect x="48" y="32" width="6" height="16" rx="3" fill="#263238"/>'
-    + '<rect x="47" y="43" width="9" height="4" rx="2" fill="#37474f"/>'
-    + '<defs>'
-    + '<linearGradient id="bg" x1="12" y1="28" x2="48" y2="56" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#1565c0" stop-opacity="0.8"/><stop offset="100%" stop-color="#0d1b2a"/></linearGradient>'
-    + '<linearGradient id="dg" x1="12" y1="8" x2="48" y2="26" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#42a5f5" stop-opacity="0.25"/><stop offset="100%" stop-color="#1565c0" stop-opacity="0"/></linearGradient>'
-    + '</defs></svg>';
+    + '<circle cx="30" cy="2" r="2" fill="#f44336"/>'
+    + '<rect x="6" y="32" width="6" height="14" rx="3" fill="#263238"/>'
+    + '<rect x="48" y="32" width="6" height="14" rx="3" fill="#263238"/>'
+    + '<defs><linearGradient id="a" x1="12" y1="28" x2="48" y2="56" gradientUnits="userSpaceOnUse">'
+    + '<stop offset="0%" stop-color="#1565c0" stop-opacity="0.9"/>'
+    + '<stop offset="100%" stop-color="#0d1b2a"/></linearGradient></defs></svg>';
 
-  /* ── Typewriter ─────────────────────────────────────────────────── */
-  var charTimer = null;
-  var greetTimer = null;
+  /* ─── Claude call ──────────────────────────────────────────────── */
+  function ask(question, cb) {
+    var apiKey = getApiKey();
+    if (!apiKey) { cb('Add your Claude API key in Settings to get AI answers.'); return; }
 
-  function typeText(el, text, done) {
-    clearInterval(charTimer);
-    el.textContent = '';
-    el.classList.remove('swa-thinking');
-    var i = 0;
-    charTimer = setInterval(function () {
-      el.textContent = text.slice(0, ++i);
-      if (i >= text.length) { clearInterval(charTimer); if (done) done(); }
-    }, 22);
-  }
-
-  /* ── Claude API call ────────────────────────────────────────────── */
-  function askClaude(question, apiKey, callback) {
-    var appName    = getAppName();
-    var appContext = getAppContext();
-    var systemMsg  = 'You are a helpful AI assistant built into ' + appName + '.'
-      + (appContext ? ' The app is: ' + appContext + '.' : '')
-      + ' Answer concisely in 2-3 sentences. Be friendly and direct.';
+    var sys = 'You are a helpful AI assistant in ' + getAppName() + ', ' + (getCtx() || 'a helpful app')
+      + '. Answer in 2-3 sentences max. Be direct and clear. Add one brief Jedi-style encouragement at the end (one sentence).';
 
     fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -144,117 +165,111 @@
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 300,
-        system: systemMsg,
+        max_tokens: 220,
+        system: sys,
         messages: [{ role: 'user', content: question }]
       })
     })
-    .then(function (res) { return res.json(); })
-    .then(function (data) {
-      if (data.error) { callback(null, data.error.message); return; }
-      callback(data.content && data.content[0] && data.content[0].text || 'No answer.', null);
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d.error) { cb('Error: ' + d.error.message); return; }
+      cb((d.content && d.content[0] && d.content[0].text) || 'No answer returned.');
     })
-    .catch(function (err) { callback(null, err.message); });
+    .catch(function (e) { cb('Connection error: ' + e.message); });
   }
 
-  /* ── Build widget ───────────────────────────────────────────────── */
+  /* ─── Typewriter ───────────────────────────────────────────────── */
+  var _ct = null;
+  function typeIn(el, text) {
+    clearInterval(_ct);
+    el.innerHTML = '';
+    var i = 0;
+    _ct = setInterval(function () {
+      el.textContent = text.slice(0, ++i);
+      if (i >= text.length) clearInterval(_ct);
+    }, 18);
+  }
+
+  /* ─── Build ────────────────────────────────────────────────────── */
   function build() {
     var root = document.getElementById('sw-avatar');
     if (!root) return;
 
-    if (!document.getElementById('swa-css')) {
+    if (!document.getElementById('jd-css')) {
       var s = document.createElement('style');
-      s.id = 'swa-css'; s.textContent = CSS;
+      s.id = 'jd-css'; s.textContent = CSS;
       document.head.appendChild(s);
     }
 
-    var wrap   = document.createElement('div');   wrap.className = 'swa';
-    var bubble = document.createElement('div');   bubble.className = 'swa-bubble';
-    var msg    = document.createElement('span');  msg.className = 'swa-msg';
+    /* wrapper */
+    var wrap = document.createElement('div'); wrap.className = 'jd';
 
-    /* search bar */
-    var bar = document.createElement('div');      bar.className = 'swa-bar';
-    var inp = document.createElement('input');
-    inp.type = 'text';
-    inp.placeholder = 'Ask me anything…';
-    var go  = document.createElement('button');   go.className = 'swa-go'; go.textContent = '›';
-    bar.appendChild(inp); bar.appendChild(go);
+    /* bubble */
+    var bubble = document.createElement('div'); bubble.className = 'jd-bubble hidden';
+    var bubText = document.createElement('span');
+    bubble.appendChild(bubText);
+    bubble.onclick = function () { bubble.classList.add('hidden'); };
 
-    /* api key row (shown only if no key found) */
-    var apiRow  = document.createElement('div');  apiRow.className = 'swa-apirow';
-    var apiInp  = document.createElement('input');
-    apiInp.type = 'text'; apiInp.placeholder = 'Paste Claude API key…';
-    var apiSave = document.createElement('button'); apiSave.className = 'swa-apisave'; apiSave.textContent = 'Save';
-    apiRow.appendChild(apiInp); apiRow.appendChild(apiSave);
-    apiRow.style.display = 'none';
+    /* option chips */
+    var opts = document.createElement('div'); opts.className = 'jd-opts hidden';
+    getOptions().forEach(function (label) {
+      var chip = document.createElement('button'); chip.className = 'jd-opt';
+      chip.textContent = label;
+      chip.onclick = function () { submit(label); };
+      opts.appendChild(chip);
+    });
 
-    bubble.appendChild(msg);
-    bubble.appendChild(bar);
-    bubble.appendChild(apiRow);
+    /* input row */
+    var row  = document.createElement('div');  row.className  = 'jd-row hidden';
+    var inp  = document.createElement('input'); inp.className  = 'jd-inp';
+    inp.type = 'text'; inp.placeholder = 'Ask the Force anything…';
+    var send = document.createElement('button'); send.className = 'jd-send'; send.textContent = '↑';
+    row.appendChild(inp); row.appendChild(send);
 
-    /* droid */
-    var droid = document.createElement('div');    droid.className = 'swa-droid';
-    droid.innerHTML = SVG;
+    /* droid icon */
+    var icon = document.createElement('div'); icon.className = 'jd-icon';
+    icon.innerHTML = DROID_SVG;
 
     wrap.appendChild(bubble);
-    wrap.appendChild(droid);
+    wrap.appendChild(opts);
+    wrap.appendChild(row);
+    wrap.appendChild(icon);
     root.appendChild(wrap);
 
-    /* show/hide API key row based on whether we have a key */
-    function refreshApiRow() {
-      apiRow.style.display = getApiKey() ? 'none' : 'flex';
-    }
-    refreshApiRow();
-
-    /* save API key */
-    apiSave.onclick = function () {
-      var k = apiInp.value.trim();
-      if (k) { saveApiKey(k); apiRow.style.display = 'none'; }
+    /* ── toggle open/close ── */
+    var isOpen = false;
+    icon.onclick = function () {
+      isOpen = !isOpen;
+      icon.classList.toggle('open', isOpen);
+      opts.classList.toggle('hidden', !isOpen);
+      row.classList.toggle('hidden', !isOpen);
+      if (isOpen && bubble.classList.contains('hidden')) {
+        // show greeting on first open
+        bubble.classList.remove('hidden');
+        typeIn(bubText, nextGreet());
+      }
+      if (isOpen) setTimeout(function () { inp.focus(); }, 50);
     };
 
-    /* submit question */
-    function submit() {
-      var question = inp.value.trim();
+    /* ── submit question ── */
+    function submit(question) {
+      question = (question || inp.value).trim();
       if (!question) return;
       inp.value = '';
 
-      var apiKey = getApiKey();
-      if (!apiKey) {
-        typeText(msg, 'Please add your Claude API key below ↓');
-        apiRow.style.display = 'flex';
-        return;
-      }
+      bubble.classList.remove('hidden');
+      bubble.innerHTML = '<div class="jd-dots"><span></span><span></span><span></span></div>';
 
-      clearTimeout(greetTimer);
-      msg.classList.add('swa-thinking');
-      msg.textContent = 'Thinking…';
-
-      askClaude(question, apiKey, function (answer, err) {
-        if (err) {
-          typeText(msg, 'Error: ' + err);
-        } else {
-          typeText(msg, answer, function () {
-            // After 12 s go back to a greeting
-            greetTimer = setTimeout(showGreeting, 12000);
-          });
-        }
+      ask(question, function (answer) {
+        bubble.innerHTML = '';
+        var span = document.createElement('span');
+        bubble.appendChild(span);
+        typeIn(span, answer);
       });
     }
 
-    go.onclick = submit;
-    inp.onkeydown = function (e) { if (e.key === 'Enter') submit(); };
-
-    /* droid tap → new greeting */
-    droid.onclick = function () { inp.value = ''; showGreeting(); };
-
-    function showGreeting() {
-      clearTimeout(greetTimer);
-      typeText(msg, nextLine(), function () {
-        greetTimer = setTimeout(showGreeting, 10000);
-      });
-    }
-
-    setTimeout(showGreeting, 600);
+    send.onclick = function () { submit(inp.value); };
+    inp.onkeydown = function (e) { if (e.key === 'Enter') submit(inp.value); };
   }
 
   if (document.readyState === 'loading') {
@@ -263,6 +278,6 @@
     build();
   }
 
-  window.SWAvatar = { askClaude: askClaude };
+  window.JediBot = { ask: ask };
 
 })();
