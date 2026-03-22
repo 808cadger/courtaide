@@ -1,204 +1,73 @@
-https://www.youtube.com/shorts/7VNHmQlBuHY
+# CourtAide
 
-# CourtAide ⚖️
+> AI legal assistant for pro se court filings — case analysis, document drafts, deadlines, and legal strategy, all before you type a word.
 
-[![Last commit](https://img.shields.io/gitea/last-commit/cadger808/courtaide?gitea_url=https://codeberg.org)](https://codeberg.org/cadger808/courtaide/commits/main)
-[![Codeberg](https://img.shields.io/badge/Codeberg-cadger808-2185D0?logo=codeberg&logoColor=white)](https://codeberg.org/cadger808/courtaide)
-[![Capacitor](https://img.shields.io/badge/Capacitor-119EFF?logo=capacitor&logoColor=white)](https://capacitorjs.com/)
-[![Claude AI](https://img.shields.io/badge/Claude_AI-Anthropic-D97706?logo=anthropic&logoColor=white)](https://anthropic.com/)
-[![Android](https://img.shields.io/badge/Android-SDK_34-3DDC84?logo=android&logoColor=white)](https://developer.android.com/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
-> **Your AI-powered legal assistant for court procedures, documents, and pro se representation.**
-
-CourtAide is a fully agentic mobile app that puts a team of AI legal tools in your pocket. It automatically analyzes your case the moment you start it, identifies required court forms, calculates deadlines, assesses your case strength, and generates full document drafts — all before you type a single word.
+[**PWA →**](https://cadger808.codeberg.page/courtaide) · [**Download APK / Desktop →**](https://codeberg.org/cadger808/courtaide/releases) · [Codeberg](https://codeberg.org/cadger808/courtaide)
 
 ---
 
-## About the Developer
+## Can anyone use this?
 
-Prompt Engineer with hands-on experience shipping production AI apps using Anthropic Claude API, including LLM agents for fraud detection, facial recognition (YOLOv8, 95% acc), and RAG workflows.
-Skilled in prompt engineering best practices: chain-of-thought, XML structuring, self-correction, and tool-calling for reliable outputs.
+**Yes — install in 10 seconds, no account needed.**
 
-IBM AI Engineering Cert (Coursera) | Python, PyTorch, Android Studio | Codeberg: [codeberg.org/cadger808](https://codeberg.org/cadger808) (live Claude-powered apps).
-Hawaii-based (Pearl City), available for remote/full-time/contract (20–40 hrs/wk). Eager to optimize prompts for evals, safety, or product features at innovative teams.
+1. Open [cadger808.codeberg.page/courtaide](https://cadger808.codeberg.page/courtaide) on any device
+2. Tap "Add to Home Screen" (or download the APK for Android / AppImage for Linux)
+3. Open the app → tap ⚙️ Settings → paste your [Anthropic API key](https://console.anthropic.com)
 
-Let's connect — happy to demo Claude agents or refine your prompts.
-
----
-
-## Features
-
-### Agentic AI Core
-- **Auto-intake pipeline** — the moment you start a case, Claude runs 5 tools in sequence before you type anything: case strength assessment, legal strategy, required forms, deadlines, and relevant laws
-- **10 legal tools** chained automatically — Claude proactively uses 3–5 tools per response without being asked
-- **Animated agent task bar** — a real-time progress bar (○ → ⟳ → ✓) shows every tool firing in sequence
-- **⚡ Run Full Analysis** — one-tap button re-triggers the full intake pipeline at any point mid-conversation
-
-### Legal Tools (10 Total)
-
-| Tool | What It Does |
-|------|-------------|
-| `assess_case_strength` | Scores your legal position 0–100 with strengths & weaknesses |
-| `recommend_legal_strategy` | Concrete next steps, timeline, and cost estimates |
-| `identify_required_forms` | Lists exact court forms needed, adds them to Documents tab |
-| `calculate_legal_deadlines` | Statutes of limitation and filing deadlines with urgency flags |
-| `cite_relevant_laws` | State-specific statutes and key provisions |
-| `generate_legal_document` | Full draft documents (demand letters, motions, answers) |
-| `build_case_timeline` | Chronological event timeline with significance flags |
-| `find_legal_resources` | Legal aid, self-help centers, bar referrals for your state |
-| `analyze_legal_situation` | Key facts, parties, and urgency assessment |
-| `draft_document_section` | Step-by-step form filling with sample language |
-
-### Case Management
-- **10 legal issue types**: Family Law, Criminal Defense, Civil Dispute, Landlord/Tenant, Employment, Small Claims, Traffic, Immigration, Bankruptcy, Estate/Probate
-- **All 50 US states** supported
-- **Case strength meter** on the home screen active case card — color-coded fill bar (green/amber/red)
-- **Documents tab** with three sections: Deadlines (🔴/🟡/🟢 urgency), Court Forms, Generated Documents
-- **View Draft modal** — read full AI-generated documents in-app
-- Persistent case history with localStorage — no backend required
-
-### Security & UX
-- Biometric Face ID / Fingerprint authentication with animated face-scan UI
-- Dark navy/gold design system optimized for mobile
-- Safe area support for notched devices
-- Smooth screen transitions and micro-animations throughout
-- **Demo mode** — full agentic simulation with realistic tool cards and timing, no API key required
+That's it. The key is stored only on your device.
 
 ---
 
-## How It Works
+## What it does
 
-```
-User selects state + issue type → taps "Start with AI Advisor"
-        ↓
-CourtAide auto-runs 5-tool intake pipeline:
-  ⚖️ Case Strength Assessment  → score shown on home card
-  🎯 Legal Strategy            → next steps + timeline
-  📄 Required Forms            → saved to Documents tab
-  ⏰ Legal Deadlines           → urgency-coded in Documents tab
-  📚 Relevant Laws             → state-specific statutes
-        ↓
-Claude greets user with a full case summary
-        ↓
-User describes their situation → Claude chains 3–5 more tools
-        ↓
-User requests a document → generate_legal_document → View Draft in Documents tab
-```
+| Feature | Description |
+|---------|-------------|
+| ⚖️ **Auto intake** | On case start, Claude runs 5 tools — strength, strategy, forms, deadlines, laws |
+| 📄 **Document drafts** | Full court document generation from your case details |
+| 📅 **Deadline tracker** | Jurisdiction-aware court deadline calculation |
+| 🔍 **Legal research** | Relevant case law and statutes surfaced automatically |
+| 🤖 **AI avatar** | Floating legal assistant on every screen |
+| 📤 **Share / install** | One-tap PWA install + Download APK button in the share widget |
+| 🖥️ **Desktop app** | Electron build (AppImage + RPM) for Linux |
+
+**10 legal tools:** `assess_case_strength` · `develop_legal_strategy` · `identify_required_forms` · `calculate_deadlines` · `research_relevant_laws` · `draft_legal_document` · `find_legal_aid` · `explain_legal_term` · `generate_court_timeline` · `summarize_case`
 
 ---
 
-## Tech Stack
+## Install options
 
-| Layer | Technology |
-|-------|-----------|
-| AI | Claude Sonnet 4.6 (Anthropic) — agentic tool-use loop |
-| Mobile | Capacitor 5 (Android) |
-| Frontend | Vanilla JS / HTML / CSS — single-file SPA |
-| Storage | localStorage (no backend, no server) |
-| Build | Gradle + Android SDK 34 |
-
----
-
-## Prerequisites
-
-- [Node.js](https://nodejs.org/) v16+
-- [Android Studio](https://developer.android.com/studio) with Android SDK 34
-- Java Development Kit (JDK) 17
-- An [Anthropic API key](https://console.anthropic.com/) *(optional — demo mode works without one)*
+| Method | Steps |
+|--------|-------|
+| **PWA** | Open link → "Add to Home Screen" — works on Android, iOS, desktop |
+| **Android APK** | [Download](https://codeberg.org/cadger808/courtaide/releases) → open file on device |
+| **ADB install** | `adb install -r app-debug.apk` |
+| **Linux desktop** | Download `.AppImage` or `.rpm` from [Releases](https://codeberg.org/cadger808/courtaide/releases) |
 
 ---
 
-## Quick Start
+## Dev quick start
 
 ```bash
-# Clone the repo
 git clone https://codeberg.org/cadger808/courtaide.git
-cd courtaide
+cd courtaide && npm install
 
-# Install dependencies
-npm install
-
-# Sync web assets to Android
-npx cap sync android
-
-# Build the debug APK
-cd android
-./gradlew assembleDebug
-
-# Install on a connected device
-adb install app/build/outputs/apk/debug/app-debug.apk
+npx serve .                                            # browser dev
+npx cap sync android && cd android && ./gradlew assembleDebug  # APK
+npm run electron:dist                                  # Electron
 ```
 
 ---
 
-## Project Structure
+## Tech stack
 
-```
-courtaide/
-├── www/
-│   └── index.html              # Entire app — HTML + CSS + JS (single file, ~2300 lines)
-├── android/
-│   ├── app/
-│   │   ├── build.gradle        # applicationId, SDK versions
-│   │   └── src/main/
-│   │       ├── java/com/courtaide/app/MainActivity.java
-│   │       └── res/values/strings.xml
-│   └── variables.gradle        # compileSdkVersion = 34, targetSdkVersion = 34
-├── capacitor.config.json       # appId: com.courtaide.app
-└── package.json
-```
+| Layer | Tech |
+|-------|------|
+| UI | Vanilla HTML/CSS/JS |
+| AI | Claude Sonnet 4.6 with 10 legal tools |
+| Mobile | Capacitor → Android APK |
+| Desktop | Electron (AppImage / RPM) |
+| CI | Forgejo Actions (APK + Pages + Electron) |
 
 ---
 
-## Configuration
-
-### API Key
-Enter your Anthropic API key in **Profile → AI Configuration**. The key is stored in `localStorage` on-device only — never sent anywhere except directly to the Anthropic API.
-
-### Capacitor Config
-```json
-{
-  "appId": "com.courtaide.app",
-  "appName": "CourtAide",
-  "webDir": "www",
-  "server": { "androidScheme": "https" }
-}
-```
-
----
-
-## Building for Release
-
-```bash
-cd android
-./gradlew assembleRelease
-```
-
-Output: `android/app/build/outputs/apk/release/app-release.apk`
-
-> Keep your keystore file and credentials out of version control.
-
----
-
-## Demo Mode
-
-No API key? No problem. CourtAide's demo mode fully simulates the agentic pipeline:
-
-- The animated agent task bar fires through all 5 intake tools with realistic delays
-- Tool cards populate with state-specific sample data (forms, deadlines, statutes, strength scores)
-- Case strength score updates the home card with a color-coded bar
-- All 10 issue types and all 50 states work in demo mode
-
----
-
-## Legal Disclaimer
-
-CourtAide provides **legal information**, not legal advice. It is not a substitute for a licensed attorney. AI-generated content may contain errors — always verify information before filing any court documents. Laws vary by jurisdiction and change frequently.
-
----
-
-## License
-
-MIT
-
+**Developer:** [codeberg.org/cadger808](https://codeberg.org/cadger808)
