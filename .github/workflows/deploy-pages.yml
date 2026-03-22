@@ -1,0 +1,33 @@
+name: Deploy PWA to Codeberg Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare www directory
+        run: |
+          mkdir -p www/icons
+          cp index.html manifest.json sw.js avatar-widget.js share-widget.js www/
+          cp api-client.js www/ 2>/dev/null || true
+          cp icons/*.png www/icons/ 2>/dev/null || true
+
+      - name: Deploy to Codeberg Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./www
+          publish_branch: pages
+          force_orphan: true
+          user_name: 'forgejo-actions[bot]'
+          user_email: 'forgejo-actions[bot]@noreply.codeberg.org'
+          commit_message: 'Deploy CourtAide PWA to Codeberg Pages'

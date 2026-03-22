@@ -1,8 +1,11 @@
-const CACHE = 'v1-courtaide';
+const CACHE = 'v2-courtaide';
 const PRECACHE = [
   './',
   './index.html',
   './manifest.json',
+  './api-client.js',
+  './avatar-widget.js',
+  './share-widget.js',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
@@ -23,6 +26,7 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  if (e.request.url.includes('api.anthropic.com')) return;
   e.respondWith(
     caches.match(e.request).then(cached => {
       const fresh = fetch(e.request).then(res => {
