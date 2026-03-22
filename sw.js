@@ -1,7 +1,8 @@
-const CACHE = 'v2-courtaide';
+const CACHE = 'v3-courtaide';
 const PRECACHE = [
   './',
   './index.html',
+  './offline.html',
   './manifest.json',
   './api-client.js',
   './avatar-widget.js',
@@ -35,7 +36,7 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return res;
-      }).catch(() => cached);
+      }).catch(() => cached || caches.match('./offline.html'));
       return cached || fresh;
     })
   );
