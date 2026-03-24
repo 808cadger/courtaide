@@ -1,6 +1,8 @@
 /**
- * ClaudeAPI — Battle-tested Claude API client
- * Retry + exponential backoff + circuit breaker + structured logging + perf timing
+ * api-client.js — CourtAide Claude API Client
+ * Aloha from Pearl City! Retry + backoff + circuit breaker + structured logs.
+ * #ASSUMPTION: CORS bypassed via anthropic-dangerous-direct-browser-calls header
+ * #ASSUMPTION: API key stored in localStorage — never hardcoded
  */
 ;(function (root) {
   'use strict'

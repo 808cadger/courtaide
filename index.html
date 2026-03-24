@@ -857,6 +857,11 @@ const ISSUE_CATEGORIES = [
 // ══════════════════════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════════════════════
+// Aloha from Pearl City! — CourtAide boots fast at 5AM
+// #ASSUMPTION: performance.now() available on all target devices
+// #ASSUMPTION: localStorage is available — all settings stay local, never sent anywhere
+const perf = { start: performance.now() };
+
 const tryParse = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch(e) { return fallback; } };
 const state = {
   profile:          tryParse('courtaide_profile', null),
