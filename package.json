@@ -1,7 +1,7 @@
 {
   "name": "courtaide",
   "version": "1.0.0",
-  "description": "CourtAide — AI Legal Assistant for Pro Se Representation",
+  "description": "CourtAide \u2014 AI Legal Assistant for Pro Se Representation",
   "main": "electron/main.js",
   "author": "Christopher Cadger <cadger808@codeberg.org>",
   "license": "UNLICENSED",
@@ -27,7 +27,7 @@
   "build": {
     "appId": "com.cadger808.courtaide",
     "productName": "CourtAide",
-    "copyright": "Copyright © 2025 Christopher Cadger",
+    "copyright": "Copyright \u00a9 2025 Christopher Cadger",
     "directories": {
       "output": "dist-electron",
       "buildResources": "icons"
@@ -47,7 +47,10 @@
       "!dist-electron/**"
     ],
     "linux": {
-      "target": ["AppImage", "rpm"],
+      "target": [
+        "AppImage",
+        "rpm"
+      ],
       "category": "Utility",
       "icon": "icons/icon-512.png",
       "desktop": {
@@ -60,5 +63,9 @@
       "provider": "generic",
       "url": "https://codeberg.org/cadger808/courtaide/releases/download/latest/"
     }
+  },
+  "overrides": {
+    "picomatch": ">=4.0.2",
+    "brace-expansion": ">=2.0.1"
   }
 }
