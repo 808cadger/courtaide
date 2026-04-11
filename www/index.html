@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="application-name" content="CourtAide">
+  <meta name="description" content="AI legal guidance for pro se litigants, filings, deadlines, and case strategy.">
+  <meta name="share-url" content="https://cadger808.codeberg.page/courtaide">
+  <meta name="apk-url" content="https://codeberg.org/cadger808/courtaide/releases">
   <title>CourtAide</title>
   <style>
     :root {
@@ -221,15 +225,31 @@
       background: var(--gradient-card); border: 1px solid var(--border);
       border-radius: 20px; padding: 20px; margin: 16px 0;
       position: relative; overflow: hidden;
+      box-shadow: 0 22px 48px rgba(0,0,0,0.28);
     }
     .hero-card::before {
       content: ''; position: absolute; top: -30px; right: -30px; width: 140px; height: 140px;
       border-radius: 50%; background: radial-gradient(ellipse, rgba(201,168,76,0.12) 0%, transparent 70%);
       pointer-events: none;
     }
+    .hero-card::after {
+      content: ''; position: absolute; left: 20px; right: 20px; top: 0; height: 1px;
+      background: linear-gradient(90deg, rgba(201,168,76,0.65), rgba(255,255,255,0));
+      opacity: 0.8;
+    }
     .hero-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 10px; }
+    .hero-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .hero-chip {
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.3px; color: var(--text-accent);
+    }
     .new-case-title { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
     .new-case-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 18px; line-height: 1.4; }
+    .hero-footnote {
+      margin-top: 12px; font-size: 12px; line-height: 1.5; color: var(--text-muted);
+      padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06);
+    }
     .state-pick-btn {
       display: flex; align-items: center; justify-content: space-between;
       padding: 13px 16px; border-radius: 13px; border: 1.5px solid var(--border);
@@ -259,8 +279,14 @@
     .case-item-info { flex: 1; }
     .case-item-title { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
     .case-item-sub { font-size: 12px; color: var(--text-muted); }
-    .empty-state { text-align: center; padding: 28px 16px; }
-    .empty-icon { font-size: 44px; margin-bottom: 10px; opacity: 0.6; }
+    .empty-state {
+      text-align: center; padding: 30px 18px; border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.06);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+      animation: riseIn 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .empty-icon { font-size: 44px; margin-bottom: 10px; opacity: 0.72; }
     .empty-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
     .empty-sub { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
 
@@ -368,8 +394,14 @@
       cursor: pointer; transition: all 0.2s; white-space: nowrap;
     }
     .fill-btn:active { background: rgba(201,168,76,0.18); }
-    .doc-empty { text-align: center; padding: 56px 24px; }
-    .doc-empty-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.7; }
+    .doc-empty {
+      text-align: center; padding: 56px 24px; border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.06);
+      box-shadow: 0 18px 34px rgba(0,0,0,0.24);
+      animation: riseIn 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .doc-empty-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.78; }
     .doc-empty-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
     .doc-empty-sub { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 24px; }
 
@@ -440,6 +472,7 @@
     .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
     @keyframes shimmer { to{background-position:-200% 0} }
     @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
+    @keyframes riseIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
 
     /* ── AGENT TASK BAR ── */
     .agent-task-bar {
@@ -615,6 +648,11 @@
     <!-- New Case Card -->
     <div class="hero-card">
       <div class="hero-label">New Case</div>
+      <div class="hero-chips">
+        <div class="hero-chip">⚖️ Filing guidance</div>
+        <div class="hero-chip">⏰ Deadline tracking</div>
+        <div class="hero-chip">📄 Form support</div>
+      </div>
       <div class="new-case-title">Start a new matter</div>
       <div class="new-case-sub">Select your state and issue type to get step-by-step legal guidance.</div>
 
@@ -628,6 +666,7 @@
       <button class="btn-primary" id="start-case-btn" onclick="startCase()" style="opacity:0.4;pointer-events:none">
         Start with AI Advisor →
       </button>
+      <div class="hero-footnote">Built for pro se litigants. CourtAide helps organize filings, deadlines, and next steps, but you should still verify anything before filing.</div>
     </div>
 
     <!-- Active Case -->
@@ -2317,6 +2356,17 @@ boot();
   </script>
   <!-- AI Avatar Bot -->
   <div id="sw-avatar" data-context="AI legal assistant helping pro se litigants with court filings, motions, and legal strategy"></div>
+  <script src="./magic-link.js"></script>
+  <script src="./api-client.js"></script>
   <script src="./avatar-widget.js"></script>
+  <script src="./share-widget.js"></script>
+  <script>
+    if (window.MagicLink && MagicLink.apply('courtaide_apikey')) {
+      state.apiKey = localStorage.getItem('courtaide_apikey') || '';
+      const input = document.getElementById('api-key-input');
+      if (input) input.value = state.apiKey;
+    }
+  </script>
+  <script src="https://cadger808.codeberg.page/zephyr/widget.js"></script>
 </body>
 </html>
