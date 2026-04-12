@@ -35,6 +35,7 @@
     "files": [
       "index.html",
       "api-client.js",
+      "magic-link.js",
       "manifest.json",
       "sw.js",
       "avatar-widget.js",
