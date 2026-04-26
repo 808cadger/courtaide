@@ -1,5 +1,47 @@
 # CourtAide
 
+<!-- INSTALL-START -->
+## Install and run
+
+These instructions install and run `courtaide` from a fresh clone.
+
+### Clone
+```bash
+git clone https://github.com/808cadger/courtaide.git
+cd courtaide
+```
+
+### Web app
+```bash
+npm install
+python3 -m http.server 8080
+```
+
+### Android build/open
+```bash
+npm run cap:sync
+npm run cap:android
+```
+
+### Desktop app
+```bash
+npm run electron
+npm run electron:dist
+```
+
+### Notes
+- Use Node.js 22 or newer for the current package set.
+- Android builds require Android Studio, a configured SDK, and Java 21 when Gradle is used.
+
+### AI/API setup
+- If the app has AI features, add the required provider key in the app settings or local `.env` file.
+- Browser-only apps store user-provided API keys on the local device unless a backend endpoint is configured.
+
+### License
+- Apache License 2.0. See [`LICENSE`](./LICENSE).
+<!-- INSTALL-END -->
+
+
 > AI legal assistant for pro se court filings — case analysis, document drafts, deadlines, and legal strategy, all before you type a word.
 
 [**PWA →**](https://cadger808.codeberg.page/courtaide) · [**Download APK / Desktop →**](https://codeberg.org/cadger808/courtaide/releases) · [Codeberg](https://codeberg.org/cadger808/courtaide)
