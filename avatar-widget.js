@@ -1,356 +1,386 @@
 (function () {
   'use strict';
 
-  /* ─── API key ──────────────────────────────────────────────────── */
-  function getApiKey() {
+  var ROOT_ID = 'sw-avatar';
+  var STYLE_ID = 'sw-agentic-avatar-style';
+  var MAX_INPUT = 700;
+
+  function rootEl() {
+    return document.getElementById(ROOT_ID);
+  }
+
+  function appName() {
+    var meta = document.querySelector('meta[name="application-name"]');
+    return (meta && meta.content) || document.title || 'this app';
+  }
+
+  function contextText() {
+    var root = rootEl();
+    if (root && root.dataset.context) return root.dataset.context;
+    var meta = document.querySelector('meta[name="description"]');
+    return (meta && meta.content) || '';
+  }
+
+  function apiKey() {
     if (window.SWAvatarApiKey) return window.SWAvatarApiKey;
     try {
       var keys = Object.keys(localStorage);
-      for (var i = 0; i < keys.length; i++) {
-        var v = localStorage.getItem(keys[i]);
-        if (v && v.startsWith('sk-ant-')) return v;
+      for (var i = 0; i < keys.length; i += 1) {
+        var value = localStorage.getItem(keys[i]);
+        if (value && value.indexOf('sk-ant-') === 0) return value;
       }
-    } catch (e) {}
+    } catch (err) {}
     return '';
   }
 
-  /* ─── Context ──────────────────────────────────────────────────── */
-  function getCtx() {
-    var el = document.getElementById('sw-avatar');
-    if (el && el.dataset.context) return el.dataset.context;
-    var m = document.querySelector('meta[name="description"]');
-    return m ? m.content : '';
-  }
-  function getAppName() {
-    var el = document.querySelector('meta[name="application-name"]');
-    if (el) return el.content;
-    return document.title || 'this app';
+  function profile() {
+    var ctx = contextText().toLowerCase() + ' ' + appName().toLowerCase();
+    if (ctx.indexOf('legal') >= 0 || ctx.indexOf('court') >= 0) {
+      return {
+        title: 'Court aide',
+        accent: '#60a5fa',
+        skills: [
+          ['assess', 'Assess case'],
+          ['draft', 'Draft filing'],
+          ['deadline', 'Find deadline'],
+          ['explain', 'Explain term']
+        ],
+        guardrail: 'Do not claim to be a lawyer. Encourage review by a qualified attorney for legal decisions.'
+      };
+    }
+    if (ctx.indexOf('farm') >= 0 || ctx.indexOf('crop') >= 0) {
+      return {
+        title: 'Farm scout',
+        accent: '#22c55e',
+        skills: [
+          ['diagnose', 'Diagnose crop'],
+          ['treat', 'Plan treatment'],
+          ['schedule', 'Care schedule'],
+          ['resource', 'Find resources']
+        ],
+        guardrail: 'Prefer practical, local, low-risk crop guidance and call out uncertainty.'
+      };
+    }
+    if (ctx.indexOf('repair') >= 0 || ctx.indexOf('mechanic') >= 0 || ctx.indexOf('auto') >= 0 || ctx.indexOf('vehicle') >= 0) {
+      return {
+        title: 'Repair coach',
+        accent: '#f59e0b',
+        skills: [
+          ['estimate', 'Estimate cost'],
+          ['triage', 'Triage issue'],
+          ['parts', 'Map parts'],
+          ['negotiate', 'Shop script']
+        ],
+        guardrail: 'Give practical repair guidance, identify safety issues, and avoid pretending to inspect what was not provided.'
+      };
+    }
+    if (ctx.indexOf('travel') >= 0 || ctx.indexOf('booking') >= 0) {
+      return {
+        title: 'Trip agent',
+        accent: '#38bdf8',
+        skills: [
+          ['plan', 'Plan trip'],
+          ['verify', 'Check docs'],
+          ['budget', 'Budget route'],
+          ['pack', 'Packing list']
+        ],
+        guardrail: 'Keep travel advice practical and ask users to verify official entry and safety rules.'
+      };
+    }
+    if (ctx.indexOf('skin') >= 0 || ctx.indexOf('glow') >= 0) {
+      return {
+        title: 'Skin coach',
+        accent: '#f472b6',
+        skills: [
+          ['routine', 'Build routine'],
+          ['ingredient', 'Check ingredient'],
+          ['track', 'Track progress'],
+          ['question', 'Ask derm prep']
+        ],
+        guardrail: 'Avoid diagnosis. Recommend professional care for urgent, painful, spreading, or unusual symptoms.'
+      };
+    }
+    if (ctx.indexOf('shopping') >= 0 || ctx.indexOf('grocery') >= 0) {
+      return {
+        title: 'Shopping agent',
+        accent: '#34d399',
+        skills: [
+          ['route', 'Route list'],
+          ['substitute', 'Find substitute'],
+          ['budget', 'Save money'],
+          ['meal', 'Meal idea']
+        ],
+        guardrail: 'Prioritize time savings, clear substitutions, and concise store navigation.'
+      };
+    }
+    if (ctx.indexOf('fraud') >= 0 || ctx.indexOf('guard') >= 0) {
+      return {
+        title: 'Safety guard',
+        accent: '#818cf8',
+        skills: [
+          ['scan', 'Scan message'],
+          ['lockdown', 'Protect account'],
+          ['report', 'Report steps'],
+          ['coach', 'Explain risk']
+        ],
+        guardrail: 'Be conservative with fraud risk. Give concrete verification and account protection steps.'
+      };
+    }
+    return {
+      title: 'AI copilot',
+      accent: '#4fc3f7',
+      skills: [
+        ['summarize', 'Summarize'],
+        ['plan', 'Make plan'],
+        ['draft', 'Draft text'],
+        ['check', 'Check risk']
+      ],
+      guardrail: 'Be concise, practical, and clear about uncertainty.'
+    };
   }
 
-  /* ─── Quick options (context-aware) ───────────────────────────── */
-  function getOptions() {
-    var ctx = getCtx().toLowerCase();
-    if (ctx.includes('skin') || ctx.includes('glow')) return [
-      'Analyze my skin type', 'Best morning routine', 'Top ingredients for me', 'What causes breakouts?'
-    ];
-    if (ctx.includes('job') || ctx.includes('resume') || ctx.includes('career')) return [
-      'Improve my resume', 'Interview tips', 'Salary negotiation', 'Cover letter help'
-    ];
-    if (ctx.includes('travel') || ctx.includes('booking')) return [
-      'Pack for my trip', 'Visa requirements', 'Best travel insurance', 'Local customs tips'
-    ];
-    if (ctx.includes('legal') || ctx.includes('court')) return [
-      'Explain this motion', 'Filing deadlines', 'What is discovery?', 'Pro se tips'
-    ];
-    if (ctx.includes('farm') || ctx.includes('crop')) return [
-      'Soil health tips', 'Pest control help', 'Best crops this season', 'Water schedule'
-    ];
-    if (ctx.includes('fraud')) return [
-      'Red flags to watch', 'Report fraud steps', 'Protect my accounts', 'Check this message'
-    ];
+  function css(accent) {
     return [
-      'How does this work?', 'Give me a tip', 'What can you do?', 'Best features here'
-    ];
+      '.swav{position:fixed;right:16px;bottom:18px;z-index:99999;display:flex;flex-direction:column;align-items:flex-end;gap:8px;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#e5f7ff}',
+      '.swav *{box-sizing:border-box}',
+      '.swav-panel{width:min(340px,calc(100vw - 24px));max-height:min(520px,calc(100vh - 96px));display:none;flex-direction:column;overflow:hidden;background:rgba(8,13,24,.96);border:1px solid color-mix(in srgb,' + accent + ' 58%,transparent);border-radius:8px;box-shadow:0 18px 50px rgba(0,0,0,.38)}',
+      '.swav.open .swav-panel{display:flex}',
+      '.swav-head{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08)}',
+      '.swav-face{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#fff,' + accent + ' 28%,#101827 68%);box-shadow:0 0 22px color-mix(in srgb,' + accent + ' 35%,transparent)}',
+      '.swav-title{font-size:13px;font-weight:700;line-height:1.1}.swav-sub{font-size:10px;color:#9fb3c8;margin-top:2px}',
+      '.swav-close{margin-left:auto;background:transparent;border:0;color:#b6c7da;font-size:20px;line-height:1;cursor:pointer}',
+      '.swav-log{padding:12px;overflow:auto;display:flex;flex-direction:column;gap:8px;min-height:112px}',
+      '.swav-msg{font-size:12px;line-height:1.45;padding:9px 10px;border-radius:8px;max-width:96%;white-space:pre-wrap;word-break:break-word}',
+      '.swav-msg.bot{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}',
+      '.swav-msg.user{align-self:flex-end;background:color-mix(in srgb,' + accent + ' 24%,#111827);border:1px solid color-mix(in srgb,' + accent + ' 48%,transparent)}',
+      '.swav-skills{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:0 12px 10px}',
+      '.swav-skill{min-height:34px;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#d8ebff;font-size:11px;cursor:pointer}',
+      '.swav-skill:hover{border-color:' + accent + ';background:color-mix(in srgb,' + accent + ' 12%,transparent)}',
+      '.swav-form{display:flex;gap:8px;padding:10px 12px;border-top:1px solid rgba(255,255,255,.08)}',
+      '.swav-input{flex:1;min-width:0;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:#050914;color:#eef8ff;font-size:12px;padding:10px;outline:none}',
+      '.swav-input:focus{border-color:' + accent + '}',
+      '.swav-send{width:40px;border:0;border-radius:6px;background:' + accent + ';color:#06101f;font-weight:800;cursor:pointer}',
+      '.swav-send:disabled{opacity:.55;cursor:not-allowed}',
+      '.swav-launch{width:54px;height:54px;border-radius:50%;border:1px solid ' + accent + ';background:#07101f;display:grid;place-items:center;cursor:pointer;box-shadow:0 0 22px color-mix(in srgb,' + accent + ' 35%,transparent)}',
+      '.swav-launch svg{width:34px;height:34px}.swav-launch:hover{transform:translateY(-1px)}',
+      '.swav-pulse{animation:swavPulse 2.8s ease-in-out infinite}@keyframes swavPulse{0%,100%{box-shadow:0 0 16px color-mix(in srgb,' + accent + ' 25%,transparent)}50%{box-shadow:0 0 30px color-mix(in srgb,' + accent + ' 48%,transparent)}}',
+      '@media(max-width:520px){.swav{right:12px;bottom:12px}.swav-panel{width:calc(100vw - 24px);max-height:70vh}.swav-skills{grid-template-columns:1fr 1fr}}'
+    ].join('');
   }
 
-  /* ─── Jedi greetings ───────────────────────────────────────────── */
-  var GREETS = [
-    'The Force is with you. How can I help?',
-    'Ask me anything, young Padawan.',
-    'Ready to assist. What do you need?',
-    'Your question is my command.',
-    'Much to learn, I can help.',
-    'Use the Force — or just ask me.',
-  ];
-  var _gi = -1;
-  function nextGreet() {
-    var n; do { n = Math.floor(Math.random() * GREETS.length); } while (n === _gi);
-    _gi = n; return GREETS[n];
+  function avatarSvg(accent) {
+    return '<svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">'
+      + '<circle cx="32" cy="32" r="28" fill="#08111f" stroke="' + accent + '" stroke-width="2"/>'
+      + '<path d="M19 34c0-10 6-17 13-17s13 7 13 17v7c0 3-2 5-5 5H24c-3 0-5-2-5-5v-7z" fill="' + accent + '" opacity=".24"/>'
+      + '<circle cx="25" cy="34" r="3" fill="' + accent + '"/><circle cx="39" cy="34" r="3" fill="' + accent + '"/>'
+      + '<path d="M25 44c5 3 9 3 14 0" stroke="#e7fbff" stroke-width="2" stroke-linecap="round" fill="none"/>'
+      + '<path d="M32 10v7" stroke="' + accent + '" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="8" r="3" fill="' + accent + '"/>'
+      + '</svg>';
   }
 
-  /* ─── CSS ──────────────────────────────────────────────────────── */
-  var CSS = [
-    '.jd{position:fixed;bottom:22px;right:18px;z-index:99999;display:flex;flex-direction:column;align-items:flex-end;gap:10px;font-family:-apple-system,BlinkMacSystemFont,"Inter",sans-serif}',
-    '.jd-bubble{background:#0a0e1a;border:1px solid #4fc3f7;border-radius:16px 16px 4px 16px;',
-    'color:#e3f2fd;font-size:12px;line-height:1.55;max-width:230px;padding:10px 13px;',
-    'word-break:break-word;box-shadow:0 4px 20px rgba(79,195,247,0.2);',
-    'animation:jdPop 0.22s cubic-bezier(0.34,1.56,0.64,1)}',
-    '.jd-bubble.hidden{display:none}',
-    '.jd-bubble.error{border-color:#f44336;color:#ffcdd2}',
-    '.jd-opts{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;max-width:260px;',
-    'animation:jdFade 0.2s ease}',
-    '.jd-opts.hidden{display:none}',
-    '.jd-opt{background:#0a0e1a;border:1px solid rgba(79,195,247,0.45);border-radius:20px;',
-    'color:#b3e5fc;font-size:10px;padding:5px 11px;cursor:pointer;white-space:nowrap;',
-    'transition:background 0.15s,border-color 0.15s;user-select:none}',
-    '.jd-opt:hover{background:rgba(79,195,247,0.1);border-color:#4fc3f7}',
-    '.jd-opt:active{transform:scale(0.94)}',
-    '.jd-row{display:flex;align-items:center;gap:7px;background:#0a0e1a;border:1px solid rgba(79,195,247,0.4);',
-    'border-radius:24px;padding:6px 6px 6px 13px;width:230px;',
-    'box-shadow:0 4px 16px rgba(79,195,247,0.15);animation:jdFade 0.2s ease}',
-    '.jd-row.hidden{display:none}',
-    '.jd-inp{flex:1;background:transparent;border:none;outline:none;color:#e3f2fd;font-size:11px;',
-    'caret-color:#4fc3f7;min-width:0}',
-    '.jd-inp::placeholder{color:rgba(179,229,252,0.35)}',
-    '.jd-send{width:28px;height:28px;border-radius:50%;background:#4fc3f7;border:none;',
-    'color:#0a0e1a;font-size:14px;font-weight:700;cursor:pointer;display:flex;',
-    'align-items:center;justify-content:center;flex-shrink:0;transition:transform 0.15s,background 0.15s}',
-    '.jd-send:active{transform:scale(0.88)}',
-    '.jd-send:disabled{background:rgba(79,195,247,0.3);cursor:not-allowed}',
-    '.jd-icon{width:52px;height:52px;border-radius:50%;background:#0a0e1a;',
-    'border:1.5px solid #4fc3f7;display:flex;align-items:center;justify-content:center;',
-    'cursor:pointer;box-shadow:0 0 16px rgba(79,195,247,0.35);',
-    'transition:box-shadow 0.2s,transform 0.2s;flex-shrink:0}',
-    '.jd-icon:hover{box-shadow:0 0 28px rgba(79,195,247,0.55)}',
-    '.jd-icon:active{transform:scale(0.9)}',
-    '.jd-icon.open{border-color:#4fc3f7;box-shadow:0 0 28px rgba(79,195,247,0.6)}',
-    '.jd-dots{display:inline-flex;gap:3px;align-items:center;padding:2px 0}',
-    '.jd-dots span{width:5px;height:5px;border-radius:50%;background:#4fc3f7;',
-    'animation:jdBounce 1s ease-in-out infinite}',
-    '.jd-dots span:nth-child(2){animation-delay:0.15s}',
-    '.jd-dots span:nth-child(3){animation-delay:0.3s}',
-    '@keyframes jdPop{0%{opacity:0;transform:scale(0.85) translateY(8px)}100%{opacity:1;transform:scale(1) translateY(0)}}',
-    '@keyframes jdFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}',
-    '@keyframes jdBounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}',
-    '@keyframes jdBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}',
-    '.jd-icon{animation:jdBob 3s ease-in-out infinite}',
-    '.jd-icon.open{animation:none}',
-  ].join('');
-
-  /* ─── SVG droid ────────────────────────────────────────────────── */
-  var DROID_SVG = '<svg width="30" height="36" viewBox="0 0 60 72" fill="none" xmlns="http://www.w3.org/2000/svg">'
-    + '<rect x="12" y="28" width="36" height="28" rx="7" fill="#0d1b2a"/>'
-    + '<rect x="12" y="28" width="36" height="28" rx="7" fill="url(#a)"/>'
-    + '<circle cx="30" cy="42" r="5" fill="#4fc3f7" opacity="0.9"/>'
-    + '<circle cx="30" cy="42" r="3" fill="#e3f2fd"/>'
-    + '<path d="M12 26 Q12 8 30 8 Q48 8 48 26 Z" fill="#1565c0"/>'
-    + '<circle cx="30" cy="18" r="5" fill="#0d1b2a"/>'
-    + '<circle cx="30" cy="18" r="3.5" fill="#4fc3f7"/>'
-    + '<circle cx="30" cy="18" r="2" fill="#e3f2fd"/>'
-    + '<circle cx="28" cy="16.5" r="0.7" fill="white" opacity="0.8"/>'
-    + '<line x1="30" y1="8" x2="30" y2="3" stroke="#78909c" stroke-width="1.5"/>'
-    + '<circle cx="30" cy="2" r="2" fill="#f44336"/>'
-    + '<rect x="6" y="32" width="6" height="14" rx="3" fill="#263238"/>'
-    + '<rect x="48" y="32" width="6" height="14" rx="3" fill="#263238"/>'
-    + '<defs><linearGradient id="a" x1="12" y1="28" x2="48" y2="56" gradientUnits="userSpaceOnUse">'
-    + '<stop offset="0%" stop-color="#1565c0" stop-opacity="0.9"/>'
-    + '<stop offset="100%" stop-color="#0d1b2a"/></linearGradient></defs></svg>';
-
-  /* ─── Demo answers (no API key) ───────────────────────────────── */
-  var DEMO = [
-    'This is a demo response — add your Claude API key in Settings to get real AI answers. May the Force guide you!',
-    'Demo mode active. Enter your Claude API key (sk-ant-...) in the app Settings to unlock live answers.',
-    'I\'m running on demo power right now. Add your API key in Settings and I\'ll answer for real.',
-    'No API key detected — head to Settings and enter your Claude key to activate live AI.',
-  ];
-  var _di = -1;
-  function demoAnswer() {
-    var n; do { n = Math.floor(Math.random() * DEMO.length); } while (n === _di);
-    _di = n; return DEMO[n];
+  function addMessage(log, role, text) {
+    var msg = document.createElement('div');
+    msg.className = 'swav-msg ' + role;
+    msg.textContent = text;
+    log.appendChild(msg);
+    log.scrollTop = log.scrollHeight;
+    return msg;
   }
 
-  /* ─── User-friendly error messages ────────────────────────────── */
-  function friendlyError(status, msg) {
-    if (status === 401) return 'Invalid API key — tap ⚙️ Settings to update it.';
-    if (status === 429) return 'Too many requests — wait a moment, then try again.';
-    if (status === 529) return 'Claude is overloaded right now — try again shortly.';
-    if (status >= 500)  return 'Claude is having a moment — try again in a few seconds.';
-    if (msg && msg.includes('timeout')) return 'Request timed out — check your connection and retry.';
-    if (msg && msg.includes('network')) return 'Connection error — check your internet and try again.';
-    return 'Something went wrong — please try again.';
+  function demoReply(skill, prompt, p) {
+    var label = skill || 'plan';
+    var base = 'Demo mode: add your API key in Settings to activate live AI. ';
+    var ctx = contextText() || appName();
+    return base + p.title + ' can run the "' + label + '" skill for ' + ctx + '. Try a specific task, and I will return a short plan, risks, and next action.';
   }
 
-  /* ─── Streaming Claude call ────────────────────────────────────── */
-  // #ASSUMPTION: browser supports ReadableStream and TextDecoder (all modern browsers do)
-  // #ASSUMPTION: api.anthropic.com SSE format stays stable (documented API contract)
-  async function askStream(question, onChunk, onDone, onError) {
-    var apiKey = getApiKey();
-    if (!apiKey) { onDone(demoAnswer()); return; }
+  function systemPrompt(skill, p) {
+    return [
+      'You are ' + p.title + ' inside ' + appName() + '.',
+      'App context: ' + (contextText() || 'No app context supplied.'),
+      'Selected skill: ' + (skill || 'general help') + '.',
+      p.guardrail,
+      'Answer with: 1) direct answer, 2) next action, 3) risk or caveat if relevant.',
+      'Keep it under 140 words unless the user asks for depth.'
+    ].join('\n');
+  }
 
-    // #ASSUMPTION: 500 chars is enough for an avatar question; long inputs waste tokens
-    if (question.length > 500) question = question.slice(0, 500);
+  async function askAnthropic(text, skill, p) {
+    var key = apiKey();
+    if (!key) return demoReply(skill, text, p);
 
-    var sys = 'You are a helpful AI assistant in ' + getAppName() + ', ' + (getCtx() || 'a helpful app')
-      + '. Answer in 2-3 sentences max. Be direct and clear. Add one brief encouraging note at the end.';
-
-    // Use ClaudeAPI circuit breaker if available, else direct streaming fetch
-    // #ASSUMPTION: ClaudeAPI is loaded before this widget (api-client.js is first in index.html)
     var controller = new AbortController();
     var timer = setTimeout(function () { controller.abort(); }, 30000);
-
     try {
       var res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey,
+          'x-api-key': key,
           'anthropic-version': '2023-06-01',
           'anthropic-dangerous-direct-browser-calls': 'true'
         },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5',
-          max_tokens: 220,
-          stream: true,
-          system: sys,
-          messages: [{ role: 'user', content: question }]
+          model: window.SWAvatarModel || 'claude-haiku-4-5',
+          max_tokens: 360,
+          system: systemPrompt(skill, p),
+          messages: [{ role: 'user', content: text.slice(0, MAX_INPUT) }]
         })
       });
-
       clearTimeout(timer);
-
       if (!res.ok) {
-        onError(friendlyError(res.status, ''));
-        return;
+        if (res.status === 401) return 'Invalid API key. Update it in Settings and try again.';
+        if (res.status === 429) return 'Rate limit reached. Wait a moment and retry.';
+        return 'AI request failed with status ' + res.status + '.';
       }
-
-      var reader = res.body.getReader();
-      var decoder = new TextDecoder();
-      var full = '';
-      var buf = '';
-
-      while (true) {
-        var result = await reader.read();
-        if (result.done) break;
-        buf += decoder.decode(result.value, { stream: true });
-        var lines = buf.split('\n');
-        buf = lines.pop(); // keep incomplete last line in buffer
-        for (var i = 0; i < lines.length; i++) {
-          var line = lines[i];
-          if (!line.startsWith('data: ')) continue;
-          var data = line.slice(6).trim();
-          if (data === '[DONE]') continue;
-          try {
-            var parsed = JSON.parse(data);
-            if (parsed.type === 'content_block_delta' && parsed.delta && parsed.delta.type === 'text_delta') {
-              full += parsed.delta.text;
-              onChunk(full);
-            }
-          } catch (e) { /* ignore malformed SSE line */ }
-        }
-      }
-
-      onDone(full || 'No answer returned.');
-
-    } catch (e) {
+      var data = await res.json();
+      return data && data.content && data.content[0] && data.content[0].text
+        ? data.content[0].text
+        : 'No answer returned.';
+    } catch (err) {
       clearTimeout(timer);
-      if (e.name === 'AbortError') { onError(friendlyError(0, 'timeout')); return; }
-      onError(friendlyError(0, 'network'));
+      return err.name === 'AbortError' ? 'Request timed out. Try a shorter question.' : 'Network error. Check your connection and retry.';
     }
   }
 
-  /* ─── Build ────────────────────────────────────────────────────── */
-  function build() {
-    var root = document.getElementById('sw-avatar');
-    if (!root) return;
+  async function askEndpoint(text, skill, p) {
+    if (!window.SWAvatarEndpoint) return askAnthropic(text, skill, p);
+    var res = await fetch(window.SWAvatarEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: text.slice(0, MAX_INPUT),
+        skill: skill || 'general',
+        app: appName(),
+        context: contextText()
+      })
+    });
+    if (!res.ok) return 'AI endpoint failed with status ' + res.status + '.';
+    var data = await res.json();
+    return data.reply || data.message || data.text || 'No answer returned.';
+  }
 
-    if (!document.getElementById('jd-css')) {
-      var s = document.createElement('style');
-      s.id = 'jd-css'; s.textContent = CSS;
-      document.head.appendChild(s);
+  function init() {
+    var root = rootEl();
+    if (!root || root.dataset.swAvatarReady === '1') return;
+    root.dataset.swAvatarReady = '1';
+
+    var p = profile();
+    if (!document.getElementById(STYLE_ID)) {
+      var style = document.createElement('style');
+      style.id = STYLE_ID;
+      style.textContent = css(p.accent);
+      document.head.appendChild(style);
     }
 
-    var wrap   = document.createElement('div'); wrap.className = 'jd';
-    var bubble = document.createElement('div'); bubble.className = 'jd-bubble hidden';
-    var bubText = document.createElement('span');
-    bubble.appendChild(bubText);
-    bubble.onclick = function () { bubble.classList.add('hidden'); bubble.classList.remove('error'); };
+    var wrap = document.createElement('section');
+    wrap.className = 'swav';
+    wrap.setAttribute('aria-label', p.title);
 
-    var opts = document.createElement('div'); opts.className = 'jd-opts hidden';
-    getOptions().forEach(function (label) {
-      var chip = document.createElement('button'); chip.className = 'jd-opt';
-      chip.textContent = label;
-      chip.onclick = function () { submit(label); };
-      opts.appendChild(chip);
+    var panel = document.createElement('div');
+    panel.className = 'swav-panel';
+
+    var head = document.createElement('div');
+    head.className = 'swav-head';
+    head.innerHTML = '<div class="swav-face">' + avatarSvg(p.accent) + '</div><div><div class="swav-title">' + p.title + '</div><div class="swav-sub">Agent skills ready</div></div>';
+    var close = document.createElement('button');
+    close.className = 'swav-close';
+    close.type = 'button';
+    close.setAttribute('aria-label', 'Close assistant');
+    close.textContent = 'x';
+    head.appendChild(close);
+
+    var log = document.createElement('div');
+    log.className = 'swav-log';
+    addMessage(log, 'bot', p.title + ' ready. Pick a skill or ask a question.');
+
+    var skills = document.createElement('div');
+    skills.className = 'swav-skills';
+    p.skills.forEach(function (item) {
+      var btn = document.createElement('button');
+      btn.className = 'swav-skill';
+      btn.type = 'button';
+      btn.dataset.skill = item[0];
+      btn.textContent = item[1];
+      skills.appendChild(btn);
     });
 
-    var row  = document.createElement('div');  row.className  = 'jd-row hidden';
-    var inp  = document.createElement('input'); inp.className  = 'jd-inp';
-    inp.type = 'text'; inp.placeholder = 'Ask anything…'; inp.maxLength = 500;
-    var send = document.createElement('button'); send.className = 'jd-send'; send.textContent = '↑';
-    row.appendChild(inp); row.appendChild(send);
+    var form = document.createElement('form');
+    form.className = 'swav-form';
+    var input = document.createElement('input');
+    input.className = 'swav-input';
+    input.type = 'text';
+    input.maxLength = MAX_INPUT;
+    input.placeholder = 'Ask or give a task...';
+    var send = document.createElement('button');
+    send.className = 'swav-send';
+    send.type = 'submit';
+    send.textContent = 'Go';
+    form.appendChild(input);
+    form.appendChild(send);
 
-    var icon = document.createElement('div'); icon.className = 'jd-icon';
-    icon.innerHTML = DROID_SVG;
+    var launcher = document.createElement('button');
+    launcher.className = 'swav-launch swav-pulse';
+    launcher.type = 'button';
+    launcher.setAttribute('aria-label', 'Open assistant');
+    launcher.innerHTML = avatarSvg(p.accent);
 
-    wrap.appendChild(bubble);
-    wrap.appendChild(opts);
-    wrap.appendChild(row);
-    wrap.appendChild(icon);
+    panel.appendChild(head);
+    panel.appendChild(log);
+    panel.appendChild(skills);
+    panel.appendChild(form);
+    wrap.appendChild(panel);
+    wrap.appendChild(launcher);
     root.appendChild(wrap);
 
-    var isOpen = false;
-    icon.onclick = function () {
-      isOpen = !isOpen;
-      icon.classList.toggle('open', isOpen);
-      opts.classList.toggle('hidden', !isOpen);
-      row.classList.toggle('hidden', !isOpen);
-      if (isOpen && bubble.classList.contains('hidden')) {
-        bubble.classList.remove('hidden');
-        bubText.textContent = nextGreet();
-      }
-      if (isOpen) setTimeout(function () { inp.focus(); }, 50);
-    };
-
-    function setLoading(on) {
-      send.disabled = on;
-      inp.disabled = on;
-      if (on) {
-        bubble.classList.remove('hidden', 'error');
-        bubble.innerHTML = '<div class="jd-dots"><span></span><span></span><span></span></div>';
-        bubText = null;
-      }
+    var activeSkill = '';
+    function open() {
+      wrap.classList.add('open');
+      launcher.classList.remove('swav-pulse');
+      input.focus();
+    }
+    function closePanel() {
+      wrap.classList.remove('open');
+    }
+    async function submit(text, skill) {
+      var prompt = (text || '').trim();
+      if (!prompt && skill) prompt = 'Run the ' + skill + ' skill for my current screen.';
+      if (!prompt) return;
+      open();
+      addMessage(log, 'user', prompt);
+      var pending = addMessage(log, 'bot', 'Working...');
+      send.disabled = true;
+      window.dispatchEvent(new CustomEvent('sw-avatar:skill', {
+        detail: { app: appName(), context: contextText(), skill: skill || activeSkill || 'general', prompt: prompt }
+      }));
+      var reply = await askEndpoint(prompt, skill || activeSkill, p);
+      pending.textContent = reply;
+      log.scrollTop = log.scrollHeight;
+      send.disabled = false;
     }
 
-    function submit(question) {
-      question = (question || inp.value).trim();
-      if (!question) return;
-      inp.value = '';
-      setLoading(true);
-
-      // Reset bubble for streaming output
-      bubble.innerHTML = '';
-      var span = document.createElement('span');
-      bubble.appendChild(span);
-      // Re-assign bubText after clearing
-      var activeBubText = span;
-
-      askStream(
-        question,
-        function onChunk(fullSoFar) {
-          // Stream text in as it arrives — no typewriter delay needed
-          activeBubText.textContent = fullSoFar;
-          bubble.classList.remove('hidden');
-        },
-        function onDone(full) {
-          activeBubText.textContent = full;
-          bubble.classList.remove('hidden');
-          send.disabled = false;
-          inp.disabled = false;
-        },
-        function onError(msg) {
-          bubble.innerHTML = '';
-          var errSpan = document.createElement('span');
-          errSpan.textContent = msg;
-          bubble.appendChild(errSpan);
-          bubble.classList.remove('hidden');
-          bubble.classList.add('error');
-          send.disabled = false;
-          inp.disabled = false;
-        }
-      );
-    }
-
-    send.onclick = function () { submit(inp.value); };
-    inp.onkeydown = function (e) { if (e.key === 'Enter' && !send.disabled) submit(inp.value); };
+    launcher.addEventListener('click', function () {
+      wrap.classList.contains('open') ? closePanel() : open();
+    });
+    close.addEventListener('click', closePanel);
+    skills.addEventListener('click', function (event) {
+      var btn = event.target.closest('.swav-skill');
+      if (!btn) return;
+      activeSkill = btn.dataset.skill;
+      submit('', activeSkill);
+    });
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var text = input.value;
+      input.value = '';
+      submit(text, activeSkill);
+    });
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', build);
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    build();
+    init();
   }
-
-  window.JediBot = { ask: function(q, cb) { askStream(q, function(){}, cb, cb); } };
-
 })();
