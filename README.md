@@ -1,10 +1,35 @@
 # CourtAide
 
+[![Release](https://img.shields.io/github/v/release/808cadger/courtaide?include_prereleases&label=release)](https://github.com/808cadger/courtaide/releases)
+[![Last commit](https://img.shields.io/github/last-commit/808cadger/courtaide)](https://github.com/808cadger/courtaide/commits)
+[![License](https://img.shields.io/github/license/808cadger/courtaide)](https://github.com/808cadger/courtaide/blob/HEAD/LICENSE)
+![Platforms](https://img.shields.io/badge/platform-Web%2FPWA%2C%20Android%2C%20Desktop-2563eb)
+
+AI legal assistant for pro se filers, case analysis, document drafting, and deadline workflows.
+
+## Project Snapshot
+
+| Area | Details |
+|------|---------|
+| Primary use case | AI legal assistant for pro se filers, case analysis, document drafting, and deadline workflows. |
+| Platforms | Web/PWA, Android, Desktop |
+| Core stack | JavaScript, Capacitor, Android, Electron, Claude AI |
+| Review first | `www/index.html`, `index.html`, `android`, `capacitor.config.json`, `package.json` |
+
 ## Download Links
 
-- **iOS / iPhone:** Open the PWA in Safari: [CourtAide iOS install](https://808cadger.github.io/courtaide/) and choose **Share -> Add to Home Screen**.
-- **Android:** Download the latest APK from GitHub Releases: [CourtAide Android releases](https://github.com/808cadger/courtaide/releases/latest).
-- **Source download:** [Download the GitHub source ZIP](https://github.com/808cadger/courtaide/archive/refs/heads/main.zip).
+| Platform | Link |
+|----------|------|
+| iOS / iPhone | [Open the PWA in Safari](https://808cadger.github.io/courtaide/) and choose **Share -> Add to Home Screen** |
+| Android | [Download the latest APK from GitHub Releases](https://github.com/808cadger/courtaide/releases/latest) |
+| Source | [Download the GitHub source ZIP](https://github.com/808cadger/courtaide/archive/refs/heads/main.zip) |
+| Repository | [View on GitHub](https://github.com/808cadger/courtaide) |
+
+## Why This Repo Is Worth Reviewing
+
+- Turns complex court tasks into guided user workflows.
+- PWA-first delivery keeps access simple across devices.
+- Mobile and desktop packaging support serious document workflows.
 
 
 <!-- INSTALL-START -->
