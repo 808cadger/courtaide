@@ -1,5 +1,12 @@
 # CourtAide
 
+## Download Links
+
+- **iOS / iPhone:** Open the PWA in Safari: [CourtAide iOS install](https://808cadger.github.io/courtaide/) and choose **Share -> Add to Home Screen**.
+- **Android:** Download the latest APK from GitHub Releases: [CourtAide Android releases](https://github.com/808cadger/courtaide/releases/latest).
+- **Source download:** [Download the GitHub source ZIP](https://github.com/808cadger/courtaide/archive/refs/heads/main.zip).
+
+
 <!-- INSTALL-START -->
 ## Install and run
 
