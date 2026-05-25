@@ -4,7 +4,6 @@ const PRECACHE = [
   './index.html',
   './manifest.json',
   './api-client.js',
-  './magic-link.js',
   './avatar-widget.js',
   './share-widget.js',
   './icons/icon-192.png',

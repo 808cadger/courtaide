@@ -781,20 +781,6 @@
     </div>
 
     <div class="settings-section">
-      <div class="settings-label">Share</div>
-      <div class="settings-card">
-        <div class="settings-row tappable" onclick="MagicLink.copy('courtaide_apikey')">
-          <div class="row-icon" style="background:rgba(201,168,76,0.18)">✨</div>
-          <div class="row-text">
-            <div class="row-title">Copy Magic Link</div>
-            <div class="row-sub">Share a link that auto-fills your API key</div>
-          </div>
-          <div class="row-chevron">›</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="settings-section">
       <div class="settings-label">About</div>
       <div class="settings-card">
         <div class="settings-row" style="cursor:default">
@@ -891,7 +877,7 @@ const state = {
   profile:          tryParse('courtaide_profile', null),
   currentCase:      tryParse('courtaide_current_case', null),
   cases:            tryParse('courtaide_cases', []),
-  apiKey:           (window.MagicLink && MagicLink.apply('courtaide_apikey'), localStorage.getItem('courtaide_apikey') || ''),
+  apiKey:           localStorage.getItem('courtaide_apikey') || '',
   biometricEnabled: localStorage.getItem('courtaide_biometric') === 'true',
   authenticated:    false,
   currentScreen:    'splash',
@@ -2461,7 +2447,6 @@ boot();
   </script>
   <!-- AI Avatar Bot -->
   <div id="sw-avatar" data-context="AI legal assistant helping pro se litigants with court filings, motions, and legal strategy"></div>
-  <script src="./magic-link.js"></script>
 <script src="./api-client.js"></script>
   <script src="./avatar-widget.js"></script>
   <script src="./share-widget.js"></script>

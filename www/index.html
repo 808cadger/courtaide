@@ -2357,16 +2357,10 @@ boot();
   </script>
   <!-- AI Avatar Bot -->
   <div id="sw-avatar" data-context="AI legal assistant helping pro se litigants with court filings, motions, and legal strategy"></div>
-  <script src="./magic-link.js"></script>
   <script src="./api-client.js"></script>
   <script src="./avatar-widget.js"></script>
   <script src="./share-widget.js"></script>
   <script>
-    if (window.MagicLink && MagicLink.apply('courtaide_apikey')) {
-      state.apiKey = localStorage.getItem('courtaide_apikey') || '';
-      const input = document.getElementById('api-key-input');
-      if (input) input.value = state.apiKey;
-    }
   </script>
   <script src="https://cadger808.codeberg.page/zephyr/widget.js"></script>
 </body>
