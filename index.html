@@ -1,0 +1,2456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.anthropic.com;">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>CourtAide</title>
+  <style>
+    :root {
+      --primary: #1B4F8A;
+      --primary-light: #2563EB;
+      --primary-dark: #0F2D4E;
+      --accent: #C9A84C;
+      --accent-light: #E0C56E;
+      --bg: #050A14;
+      --bg-card: rgba(15, 30, 55, 0.92);
+      --bg-card2: rgba(10, 20, 40, 0.8);
+      --bg-input: rgba(255,255,255,0.06);
+      --text: #EEF2FF;
+      --text-muted: #7A8FAD;
+      --text-accent: #93B8DC;
+      --border: rgba(27, 79, 138, 0.3);
+      --glow: 0 0 32px rgba(27, 79, 138, 0.5);
+      --gradient: linear-gradient(135deg, #1B4F8A 0%, #C9A84C 100%);
+      --gradient-card: linear-gradient(135deg, rgba(27,79,138,0.28) 0%, rgba(201,168,76,0.10) 100%);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --nav-h: 68px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, 'SF Pro Display', BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+    /* ── SCREENS ── */
+    .screen {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      background: var(--bg); overflow: hidden;
+      transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0; pointer-events: none; transform: translateY(20px);
+    }
+    .screen.active { opacity: 1; pointer-events: all; transform: translateY(0); }
+
+    /* ── SPLASH ── */
+    #splash {
+      justify-content: center; align-items: center; gap: 18px;
+      background: radial-gradient(ellipse at 50% 40%, rgba(27,79,138,0.5) 0%, transparent 70%), var(--bg);
+    }
+    .splash-logo {
+      width: 96px; height: 96px; border-radius: 28px; background: var(--gradient);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--glow); opacity: 0;
+      animation: splashLogoIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, logoPulse 2.5s ease-in-out 1s infinite;
+    }
+    .splash-logo svg { width: 54px; height: 54px; }
+    .splash-title { font-size: 36px; font-weight: 800; letter-spacing: -1px; background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; opacity: 0; animation: splashFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.35s forwards; }
+    .splash-sub { font-size: 15px; color: var(--text-muted); opacity: 0; animation: splashFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards; }
+    .splash-loader { width: 56px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 32px; opacity: 0; animation: splashFadeUp 0.5s 0.65s forwards; }
+    .splash-loader-bar { height: 100%; width: 0%; background: var(--gradient); border-radius: 2px; animation: loadbar 2.2s ease 0.65s forwards; }
+    @keyframes splashLogoIn { 0%{transform:scale(0.3) rotate(-15deg);opacity:0} 70%{transform:scale(1.1) rotate(3deg);opacity:1} 100%{transform:scale(1) rotate(0deg);opacity:1} }
+    @keyframes splashFadeUp { from{transform:translateY(18px);opacity:0} to{transform:translateY(0);opacity:1} }
+    @keyframes loadbar { 0%{width:0%} 60%{width:80%} 100%{width:100%} }
+    @keyframes logoPulse { 0%,100%{box-shadow:0 0 32px rgba(27,79,138,0.5)} 50%{box-shadow:0 0 60px rgba(201,168,76,0.4),0 0 30px rgba(27,79,138,0.3)} }
+
+    /* ── AUTH ── */
+    #auth {
+      justify-content: center; align-items: center;
+      background: radial-gradient(ellipse at 50% 35%, rgba(27,79,138,0.4) 0%, transparent 65%), var(--bg);
+      padding: calc(var(--safe-top) + 24px) 32px calc(var(--safe-bottom) + 24px);
+      gap: 0;
+    }
+    .auth-logo { width: 56px; height: 56px; border-radius: 18px; background: var(--gradient); display: flex; align-items: center; justify-content: center; margin-bottom: 20px; box-shadow: var(--glow); }
+    .auth-logo svg { width: 30px; height: 30px; }
+    .auth-title { font-size: 24px; font-weight: 800; text-align: center; margin-bottom: 8px; }
+    .auth-sub { font-size: 14px; color: var(--text-muted); text-align: center; margin-bottom: 44px; line-height: 1.5; max-width: 280px; }
+    .face-scan-wrap {
+      width: 190px; height: 190px; position: relative;
+      display: flex; align-items: center; justify-content: center; margin-bottom: 44px;
+    }
+    .face-outer-ring {
+      position: absolute; inset: 0; border-radius: 50%;
+      border: 2.5px solid rgba(27,79,138,0.4);
+    }
+    .face-spin-ring {
+      position: absolute; inset: 0; border-radius: 50%;
+      border: 2.5px solid transparent;
+      border-top-color: var(--accent);
+      border-right-color: rgba(201,168,76,0.4);
+      animation: spin 1.8s linear infinite;
+    }
+    .face-spin-ring2 {
+      position: absolute; inset: 14px; border-radius: 50%;
+      border: 2px solid transparent;
+      border-bottom-color: var(--primary-light);
+      border-left-color: rgba(37,99,235,0.35);
+      animation: spinReverse 2.4s linear infinite;
+    }
+    .face-inner {
+      width: 138px; height: 138px; border-radius: 50%;
+      background: rgba(27,79,138,0.12); border: 1.5px solid rgba(27,79,138,0.35);
+      display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
+    }
+    .face-inner svg { width: 76px; height: 76px; }
+    .scan-beam {
+      position: absolute; left: 10px; right: 10px; height: 2px;
+      background: linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%);
+      border-radius: 1px; animation: beamScan 2.2s ease-in-out infinite;
+    }
+    .scan-beam.hidden-beam { opacity: 0; }
+    @keyframes beamScan { 0%{top:15%;opacity:0} 10%{opacity:0.9} 50%{top:78%} 90%{opacity:0.9} 100%{top:15%;opacity:0} }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    @keyframes spinReverse { to{transform:rotate(-360deg)} }
+    .auth-btn {
+      width: 100%; max-width: 320px; padding: 17px; border-radius: 16px; border: none;
+      background: var(--gradient); color: white; font-size: 16px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 24px rgba(27,79,138,0.45);
+      letter-spacing: 0.3px;
+    }
+    .auth-btn:active { transform: scale(0.98); box-shadow: 0 2px 12px rgba(27,79,138,0.3); }
+    .auth-status { font-size: 13px; color: var(--text-muted); margin-top: 16px; text-align: center; }
+
+    /* ── SETUP ── */
+    #setup {
+      background: radial-gradient(ellipse at 30% 0%, rgba(27,79,138,0.3) 0%, transparent 60%), var(--bg);
+      padding-top: calc(var(--safe-top) + 16px);
+    }
+    .setup-header { padding: 0 24px 20px; }
+    .setup-eyebrow { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--accent); margin-bottom: 8px; }
+    .setup-title { font-size: 26px; font-weight: 800; line-height: 1.2; }
+    .setup-sub { font-size: 14px; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
+    .setup-body { flex: 1; overflow-y: auto; padding: 0 24px; -webkit-overflow-scrolling: touch; }
+    .setup-footer { padding: 20px 24px; padding-bottom: calc(20px + var(--safe-bottom)); flex-shrink: 0; }
+    .field-label { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px; }
+    .field-input {
+      width: 100%; background: var(--bg-input); border: 1.5px solid var(--border);
+      border-radius: 14px; padding: 14px 16px; color: var(--text); font-size: 16px;
+      outline: none; font-family: inherit; margin-bottom: 20px; transition: border-color 0.2s;
+    }
+    .field-input:focus { border-color: var(--primary-light); }
+    .field-input::placeholder { color: var(--text-muted); }
+    .field-select {
+      width: 100%; background: var(--bg-input); border: 1.5px solid var(--border);
+      border-radius: 14px; padding: 14px 16px; color: var(--text); font-size: 16px;
+      outline: none; font-family: inherit; margin-bottom: 20px; appearance: none;
+      -webkit-appearance: none; cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237A8FAD' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+      transition: border-color 0.2s;
+    }
+    .field-select:focus { border-color: var(--primary-light); }
+    .field-select option { background: #0A1624; color: var(--text); }
+
+    /* ── SHARED COMPONENTS ── */
+    .btn-primary {
+      width: 100%; padding: 16px; border-radius: 16px; border: none;
+      background: var(--gradient); color: white; font-size: 16px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px;
+      box-shadow: 0 4px 24px rgba(27,79,138,0.4);
+    }
+    .btn-primary:active { transform: scale(0.98); box-shadow: 0 2px 12px rgba(27,79,138,0.3); }
+    .btn-secondary {
+      width: 100%; padding: 16px; border-radius: 16px; border: 1.5px solid var(--border);
+      background: transparent; color: var(--text); font-size: 16px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-secondary:active { transform: scale(0.98); background: var(--bg-input); }
+    .btn-icon {
+      width: 44px; height: 44px; border-radius: 12px; border: 1.5px solid var(--border);
+      background: var(--bg-card); color: var(--text); font-size: 18px;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      transition: all 0.2s; flex-shrink: 0;
+    }
+    .btn-icon:active { transform: scale(0.93); background: var(--bg-input); }
+    .chip { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border-radius: 50px; font-size: 12px; font-weight: 600; }
+    .chip-blue { background: rgba(27,79,138,0.3); color: var(--text-accent); }
+    .chip-gold { background: rgba(201,168,76,0.2); color: var(--accent-light); }
+    .chip-green { background: rgba(16,185,129,0.2); color: #6EE7B7; }
+    .chip-red { background: rgba(239,68,68,0.2); color: #FCA5A5; }
+    .chip-gray { background: rgba(255,255,255,0.08); color: var(--text-muted); }
+    .screen-body {
+      flex: 1; overflow-y: auto; overflow-x: hidden;
+      padding: 0 20px; padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 16px);
+      -webkit-overflow-scrolling: touch;
+    }
+    .screen-header {
+      padding: calc(var(--safe-top) + 16px) 20px 0;
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    .section-title { font-size: 17px; font-weight: 700; margin-bottom: 12px; margin-top: 20px; }
+    .divider { height: 1px; background: var(--border); margin: 16px 0; }
+    .row { display: flex; align-items: center; gap: 8px; }
+    .mt-16 { margin-top: 16px; }
+    .hidden { display: none !important; }
+
+    /* ── BOTTOM NAV ── */
+    #bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: calc(var(--nav-h) + var(--safe-bottom));
+      background: rgba(5, 8, 18, 0.96); backdrop-filter: blur(24px);
+      border-top: 1px solid var(--border);
+      display: none; align-items: flex-start; padding-top: 8px;
+      z-index: 100;
+    }
+    .nav-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 0 4px; cursor: pointer; transition: all 0.2s; user-select: none;
+    }
+    .nav-item:active { transform: scale(0.9); }
+    .nav-icon { font-size: 22px; transition: all 0.2s; }
+    .nav-label { font-size: 10px; font-weight: 600; color: var(--text-muted); transition: color 0.2s; letter-spacing: 0.3px; }
+    .nav-item.active .nav-label { color: var(--accent-light); }
+    .nav-item.active .nav-icon { animation: navIconBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+    @keyframes navIconBounce { 0%{transform:translateY(0) scale(1)} 35%{transform:translateY(-6px) scale(1.2)} 65%{transform:translateY(-1px) scale(0.96)} 100%{transform:translateY(-2px) scale(1)} }
+
+    /* ── HOME ── */
+    #home { background: var(--bg); }
+    .greeting { font-size: 13px; color: var(--text-muted); }
+    .greeting-name { font-size: 22px; font-weight: 700; }
+    .avatar { width: 42px; height: 42px; border-radius: 14px; background: var(--gradient); display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; transition: all 0.2s; }
+    .avatar:active { transform: scale(0.93); }
+    .hero-card {
+      background: var(--gradient-card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 20px; margin: 16px 0;
+      position: relative; overflow: hidden;
+    }
+    .hero-card::before {
+      content: ''; position: absolute; top: -30px; right: -30px; width: 140px; height: 140px;
+      border-radius: 50%; background: radial-gradient(ellipse, rgba(201,168,76,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 10px; }
+    .new-case-title { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+    .new-case-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 18px; line-height: 1.4; }
+    .state-pick-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 16px; border-radius: 13px; border: 1.5px solid var(--border);
+      background: var(--bg-input); cursor: pointer; margin-bottom: 12px; transition: all 0.2s;
+      font-size: 15px; color: var(--text-muted); font-weight: 500;
+    }
+    .state-pick-btn.chosen { border-color: var(--accent); color: var(--accent-light); font-weight: 700; background: rgba(201,168,76,0.08); }
+    .state-pick-btn:active { transform: scale(0.99); }
+    .issue-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .issue-card {
+      padding: 15px 12px; border-radius: 15px; border: 1.5px solid var(--border);
+      background: var(--bg-card); text-align: center; cursor: pointer;
+      transition: all 0.2s; user-select: none;
+    }
+    .issue-card:active { transform: scale(0.96); }
+    .issue-card.selected { border-color: var(--accent); background: rgba(201,168,76,0.1); animation: cardPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    @keyframes cardPop { 0%{transform:scale(1)} 40%{transform:scale(0.94)} 70%{transform:scale(1.05)} 100%{transform:scale(1)} }
+    .issue-icon { font-size: 24px; margin-bottom: 6px; }
+    .issue-label { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1.2; }
+    .case-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px; background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s;
+    }
+    .case-item:active { background: var(--bg-card2); transform: scale(0.99); }
+    .case-item-icon { width: 40px; height: 40px; border-radius: 12px; background: rgba(27,79,138,0.25); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .case-item-info { flex: 1; }
+    .case-item-title { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+    .case-item-sub { font-size: 12px; color: var(--text-muted); }
+    .empty-state { text-align: center; padding: 28px 16px; }
+    .empty-icon { font-size: 44px; margin-bottom: 10px; opacity: 0.6; }
+    .empty-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .empty-sub { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+    /* ── ADVISOR CHAT ── */
+    #advisor { background: var(--bg); }
+    .advisor-header {
+      padding: calc(var(--safe-top) + 14px) 16px 12px;
+      display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .advisor-avatar { width: 44px; height: 44px; border-radius: 14px; background: var(--gradient); display: flex; align-items: center; justify-content: center; font-size: 22px; box-shadow: var(--glow); flex-shrink: 0; }
+    .advisor-info { flex: 1; }
+    .advisor-name { font-size: 17px; font-weight: 700; }
+    .advisor-status { font-size: 12px; color: #6EE7B7; display: flex; align-items: center; gap: 4px; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #6EE7B7; animation: blink 2s ease infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .case-ctx-bar {
+      padding: 9px 16px; background: rgba(27,79,138,0.14);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+    }
+    .ctx-label { font-size: 13px; font-weight: 600; flex: 1; color: var(--text); }
+    .ctx-state { font-size: 12px; color: var(--accent-light); }
+    .chat-body { flex: 1; overflow-y: auto; padding: 14px; -webkit-overflow-scrolling: touch; }
+    .msg-row { display: flex; margin-bottom: 12px; align-items: flex-end; gap: 8px; }
+    .msg-row.user { flex-direction: row-reverse; }
+    .msg-avatar { width: 28px; height: 28px; border-radius: 9px; background: var(--gradient); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+    .msg-avatar.user { background: rgba(255,255,255,0.1); font-size: 12px; }
+    .msg-bubble {
+      max-width: 80%; padding: 11px 14px; border-radius: 18px;
+      font-size: 14px; line-height: 1.55; border: 1px solid transparent;
+    }
+    .msg-row.ai .msg-bubble { background: var(--bg-card); border-color: var(--border); border-bottom-left-radius: 4px; color: var(--text); }
+    .msg-row.user .msg-bubble { background: var(--gradient); color: white; border-bottom-right-radius: 4px; }
+    .tool-card {
+      max-width: 92%; background: rgba(27,79,138,0.14); border: 1px solid rgba(37,99,235,0.3);
+      border-radius: 16px; padding: 14px; margin-bottom: 12px; overflow: hidden;
+    }
+    .tool-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .tool-name { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-accent); flex: 1; }
+    .tool-result { font-size: 13px; color: var(--text-muted); line-height: 1.55; }
+    .tool-result strong { color: var(--text); }
+    .tool-result ul { padding-left: 16px; margin-top: 4px; }
+    .tool-result li { margin-bottom: 4px; }
+    .typing-indicator { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+    .typing-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); animation: typing 1.2s ease infinite; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+    .disclaimer-banner {
+      margin: 8px 14px; padding: 9px 13px; border-radius: 11px;
+      background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.22);
+      font-size: 11px; color: var(--accent-light); line-height: 1.45; flex-shrink: 0;
+    }
+    .chat-input-area {
+      flex-shrink: 0;
+      border-top: 2px solid var(--border);
+      background: rgba(5,8,18,0.97);
+    }
+    .chat-input-row {
+      display: flex; gap: 10px; align-items: flex-end; padding: 10px 14px 12px;
+    }
+    .chat-input {
+      flex: 1; background: var(--bg-input); border: 1.5px solid rgba(27,79,138,0.5);
+      border-radius: 22px; color: var(--text); font-size: 15px; padding: 12px 18px;
+      outline: none; resize: none; max-height: 120px; line-height: 1.5; font-family: inherit;
+      box-shadow: 0 0 0 0 rgba(27,79,138,0); transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .chat-input:focus {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(27,79,138,0.2);
+    }
+    .chat-input::placeholder { color: var(--text-muted); }
+    .chat-send {
+      width: 48px; height: 48px; border-radius: 50%; border: none; background: var(--gradient);
+      color: white; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all 0.2s; box-shadow: 0 4px 16px rgba(27,79,138,0.45);
+    }
+    .chat-send:active { transform: scale(0.88); }
+    .chat-send:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+    /* ── DOCUMENTS ── */
+    #documents { background: var(--bg); }
+    .doc-case-bar {
+      padding: 10px 20px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .doc-case-label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+    .doc-case-name { font-size: 15px; font-weight: 700; }
+    .form-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px; background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 15px; margin-bottom: 10px;
+    }
+    .form-status { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .form-status.needed { background: rgba(255,255,255,0.2); border: 2px solid var(--text-muted); }
+    .form-status.in-progress { background: var(--accent); animation: blink 2s infinite; }
+    .form-status.complete { background: #6EE7B7; }
+    .form-info { flex: 1; }
+    .form-name { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+    .form-number { font-size: 12px; color: var(--accent-light); font-weight: 600; }
+    .form-court { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .fill-btn {
+      padding: 9px 14px; border-radius: 10px; border: 1.5px solid rgba(201,168,76,0.4);
+      background: rgba(201,168,76,0.08); color: var(--accent-light); font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; white-space: nowrap;
+    }
+    .fill-btn:active { background: rgba(201,168,76,0.18); }
+    .doc-empty { text-align: center; padding: 56px 24px; }
+    .doc-empty-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.7; }
+    .doc-empty-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .doc-empty-sub { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 24px; }
+
+    /* ── SETTINGS ── */
+    #settings { background: var(--bg); }
+    .profile-header {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      padding: 28px 20px 20px;
+    }
+    .profile-avatar { width: 80px; height: 80px; border-radius: 24px; background: var(--gradient); display: flex; align-items: center; justify-content: center; font-size: 36px; box-shadow: var(--glow); }
+    .profile-name { font-size: 22px; font-weight: 700; }
+    .profile-sub { font-size: 14px; color: var(--text-muted); }
+    .settings-section { margin-bottom: 24px; }
+    .settings-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 10px; padding: 0 2px; }
+    .settings-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+    .settings-row { display: flex; align-items: center; gap: 12px; padding: 15px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.2s; }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row.tappable { cursor: pointer; }
+    .settings-row.tappable:active { background: rgba(255,255,255,0.03); }
+    .row-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .row-text { flex: 1; }
+    .row-title { font-size: 15px; font-weight: 500; }
+    .row-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .row-chevron { color: var(--text-muted); font-size: 16px; }
+    .settings-input { width: 100%; background: transparent; border: none; outline: none; color: var(--text); font-size: 14px; font-family: monospace; letter-spacing: 0.5px; }
+    .settings-input::placeholder { color: var(--text-muted); font-family: inherit; letter-spacing: 0; font-size: 13px; }
+    .disclaimer-box {
+      background: rgba(201,168,76,0.07); border: 1px solid rgba(201,168,76,0.22);
+      border-radius: 14px; padding: 16px; margin-bottom: 24px;
+    }
+    .disclaimer-title { font-size: 13px; font-weight: 800; color: var(--accent-light); margin-bottom: 8px; letter-spacing: 0.3px; }
+    .disclaimer-text { font-size: 12px; color: var(--text-muted); line-height: 1.65; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
+      z-index: 200; display: flex; align-items: flex-end;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .modal-overlay.show { opacity: 1; pointer-events: all; }
+    .modal-sheet {
+      background: #090F1E; border-radius: 24px 24px 0 0; padding: 20px 20px 0;
+      padding-bottom: calc(16px + var(--safe-bottom)); width: 100%;
+      border: 1px solid var(--border); border-bottom: none;
+      transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
+      max-height: 85vh; display: flex; flex-direction: column;
+    }
+    .modal-overlay.show .modal-sheet { transform: translateY(0); }
+    .modal-handle { width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.15); margin: 0 auto 18px; flex-shrink: 0; }
+    .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 14px; flex-shrink: 0; }
+    .modal-search {
+      width: 100%; background: var(--bg-input); border: 1.5px solid var(--border); border-radius: 13px;
+      padding: 12px 16px; color: var(--text); font-size: 15px; outline: none; font-family: inherit;
+      margin-bottom: 10px; flex-shrink: 0; transition: border-color 0.2s;
+    }
+    .modal-search:focus { border-color: var(--primary-light); }
+    .modal-search::placeholder { color: var(--text-muted); }
+    .state-list { overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+    .state-list-item {
+      padding: 14px 16px; border-radius: 11px; cursor: pointer; font-size: 15px; font-weight: 500;
+      transition: background 0.15s; color: var(--text);
+    }
+    .state-list-item:active { background: rgba(27,79,138,0.22); }
+    .state-list-item.active { background: rgba(27,79,138,0.22); color: var(--accent-light); font-weight: 700; }
+    .modal-content-wrap { flex: 1; overflow-y: auto; }
+
+    /* ── UTILITIES ── */
+    .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+    @keyframes shimmer { to{background-position:-200% 0} }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
+
+    /* ── AGENT TASK BAR ── */
+    .agent-task-bar {
+      margin: 8px 14px; padding: 12px 14px; border-radius: 14px;
+      background: rgba(27,79,138,0.18); border: 1px solid rgba(37,99,235,0.4);
+      flex-shrink: 0; animation: slideDown 0.3s cubic-bezier(0.16,1,0.3,1);
+    }
+    @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+    .agent-task-bar-header { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-accent); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .agent-task-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px; }
+    .agent-task-icon { width: 18px; text-align: center; flex-shrink: 0; font-size: 13px; }
+    .agent-task-label { flex: 1; color: var(--text-muted); transition: color 0.2s; }
+    .agent-task-item.done .agent-task-label { color: var(--text); }
+    .agent-task-item.running .agent-task-label { color: var(--text-accent); }
+    @keyframes taskSpin { to{transform:rotate(360deg)} }
+    .task-spinner { display: inline-block; animation: taskSpin 0.7s linear infinite; }
+
+    /* ── STRENGTH METER ── */
+    .strength-bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,0.1); margin: 5px 0 3px; overflow: hidden; }
+    .strength-fill { height: 100%; border-radius: 3px; background: var(--gradient); transition: width 1s cubic-bezier(0.16,1,0.3,1); }
+    .strength-rating { font-size: 11px; font-weight: 700; margin-top: 1px; }
+    .strength-rating.strong { color: #6EE7B7; }
+    .strength-rating.moderate { color: var(--accent-light); }
+    .strength-rating.weak { color: #FCA5A5; }
+
+    /* ── DEADLINE ITEMS ── */
+    .deadline-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 13px; border-radius: 12px; margin-bottom: 8px; border: 1px solid;
+    }
+    .deadline-item.urgent { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.35); }
+    .deadline-item.warning { background: rgba(201,168,76,0.1); border-color: rgba(201,168,76,0.35); }
+    .deadline-item.ok { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.25); }
+    .deadline-icon { font-size: 16px; flex-shrink: 0; }
+    .deadline-text { flex: 1; font-size: 13px; font-weight: 600; }
+    .deadline-days { font-size: 11px; font-weight: 700; opacity: 0.8; white-space: nowrap; }
+
+    /* ── GENERATED DOC CARDS ── */
+    .gen-doc-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px; background: var(--bg-card); border: 1px solid rgba(37,99,235,0.3);
+      border-radius: 14px; margin-bottom: 10px;
+    }
+    .gen-doc-icon { width: 40px; height: 40px; border-radius: 12px; background: rgba(37,99,235,0.2); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .gen-doc-info { flex: 1; }
+    .gen-doc-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+    .gen-doc-meta { font-size: 11px; color: var(--text-muted); }
+    .view-doc-btn {
+      padding: 8px 13px; border-radius: 10px; border: 1.5px solid rgba(37,99,235,0.4);
+      background: rgba(37,99,235,0.1); color: var(--text-accent); font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;
+    }
+    .view-doc-btn:active { background: rgba(37,99,235,0.2); }
+
+    /* ── DOC VIEW MODAL ── */
+    .doc-view-content {
+      font-size: 14px; line-height: 1.75; color: var(--text);
+      white-space: pre-wrap; flex: 1; overflow-y: auto; padding-bottom: 16px;
+    }
+    .system-msg {
+      text-align: center; padding: 5px 14px; font-size: 11px; color: var(--text-muted);
+      font-style: italic;
+    }
+  </style>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1B4F8A">
+  <meta name="share-url" content="https://cadger808.codeberg.page/courtaide">
+  <meta name="apk-url" content="https://codeberg.org/cadger808/courtaide/releases">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+  <!-- SEO + Open Graph — rich previews on WhatsApp, iMessage, Twitter, Facebook -->
+  <meta name="keywords" content="AI legal assistant, pro se court, legal documents, court prep, free legal app, AI lawyer">
+  <meta name="author" content="cadger808">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="CourtAide — AI Legal Assistant">
+  <meta property="og:description" content="Navigate court without a lawyer. AI-powered document drafting, case research, and court prep. Free, no app store.">
+  <meta property="og:url" content="https://cadger808.codeberg.page/courtaide">
+  <meta property="og:image" content="https://cadger808.codeberg.page/courtaide/icons/icon-512.png">
+  <meta property="og:image:width" content="512">
+  <meta property="og:image:height" content="512">
+  <meta property="og:site_name" content="Zephyr Network">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="CourtAide — AI Legal Assistant">
+  <meta name="twitter:description" content="Navigate court without a lawyer. AI-powered document drafting, case research, and court prep. Free, no app store.">
+  <meta name="twitter:image" content="https://cadger808.codeberg.page/courtaide/icons/icon-512.png">
+  <link rel="stylesheet" href="./shine.css">
+</head>
+<body>
+
+<!-- ══════════════════════ SPLASH ══════════════════════ -->
+<div id="splash" class="screen">
+  <div class="splash-logo">
+    <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="25" y="5" width="2.5" height="38" fill="white" rx="1.25"/>
+      <rect x="11" y="7" width="30" height="2.5" fill="white" rx="1.25"/>
+      <line x1="11" y1="8.25" x2="3" y2="20" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="11" y1="8.25" x2="19" y2="20" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M3 20 Q11 26 19 20" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="41" y1="8.25" x2="33" y2="20" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="41" y1="8.25" x2="49" y2="20" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M33 20 Q41 26 49 20" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+      <rect x="20" y="43" width="12" height="3" fill="white" rx="1.5"/>
+    </svg>
+  </div>
+  <div class="splash-title">CourtAide</div>
+  <div class="splash-sub">Your AI-powered legal assistant</div>
+  <div class="splash-loader"><div class="splash-loader-bar"></div></div>
+</div>
+
+<!-- ══════════════════════ AUTH ══════════════════════ -->
+<div id="auth" class="screen">
+  <div class="auth-logo">
+    <svg viewBox="0 0 30 30" fill="none">
+      <rect x="14" y="2" width="2" height="22" fill="white" rx="1"/>
+      <rect x="6" y="4" width="18" height="1.8" fill="white" rx="0.9"/>
+      <line x1="6" y1="4.9" x2="1" y2="13" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="6" y1="4.9" x2="11" y2="13" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M1 13 Q6 17 11 13" fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="24" y1="4.9" x2="19" y2="13" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="24" y1="4.9" x2="29" y2="13" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M19 13 Q24 17 29 13" fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+      <rect x="11" y="25" width="8" height="2.2" fill="white" rx="1.1"/>
+    </svg>
+  </div>
+  <div class="auth-title" id="auth-title">Welcome back</div>
+  <div class="auth-sub" id="auth-sub">Scanning your biometrics to securely access your cases</div>
+  <div class="face-scan-wrap">
+    <div class="face-outer-ring"></div>
+    <div class="face-spin-ring" id="face-spin-1"></div>
+    <div class="face-spin-ring2" id="face-spin-2"></div>
+    <div class="face-inner">
+      <svg viewBox="0 0 76 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Face outline -->
+        <ellipse cx="38" cy="36" rx="22" ry="26" fill="none" stroke="rgba(147,184,220,0.5)" stroke-width="1.5"/>
+        <!-- Eyes -->
+        <ellipse cx="29" cy="32" rx="3" ry="3.5" fill="rgba(147,184,220,0.6)"/>
+        <ellipse cx="47" cy="32" rx="3" ry="3.5" fill="rgba(147,184,220,0.6)"/>
+        <!-- Nose bridge -->
+        <path d="M38 35 L35 44 L41 44" fill="none" stroke="rgba(147,184,220,0.4)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Mouth -->
+        <path d="M30 50 Q38 55 46 50" fill="none" stroke="rgba(147,184,220,0.5)" stroke-width="1.5" stroke-linecap="round"/>
+        <!-- Corner brackets -->
+        <path d="M14 22 L14 14 L22 14" fill="none" stroke="rgba(201,168,76,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M62 22 L62 14 L54 14" fill="none" stroke="rgba(201,168,76,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M14 58 L14 66 L22 66" fill="none" stroke="rgba(201,168,76,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M62 58 L62 66 L54 66" fill="none" stroke="rgba(201,168,76,0.7)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="scan-beam" id="scan-beam"></div>
+    </div>
+  </div>
+  <button class="auth-btn" id="auth-btn" onclick="handleAuthBtn()">🔐 Enable Face ID</button>
+  <div class="auth-status" id="auth-status"></div>
+</div>
+
+<!-- ══════════════════════ SETUP ══════════════════════ -->
+<div id="setup" class="screen">
+  <div class="setup-header">
+    <div class="setup-eyebrow">Getting Started</div>
+    <div class="setup-title">Create your<br>legal profile</div>
+    <div class="setup-sub">We'll personalize your CourtAide experience based on your location and needs.</div>
+  </div>
+  <div class="setup-body">
+    <div class="field-label">Your Name</div>
+    <input class="field-input" id="setup-name" type="text" placeholder="Full name" autocomplete="name">
+
+    <div class="field-label">Home State</div>
+    <select class="field-select" id="setup-state">
+      <option value="">Select your state...</option>
+    </select>
+
+    <div class="field-label">Date of Birth</div>
+    <input class="field-input" id="setup-dob" type="date">
+
+    <div style="height:8px"></div>
+  </div>
+  <div class="setup-footer">
+    <button class="btn-primary" onclick="completeSetup()">Continue →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ HOME ══════════════════════ -->
+<div id="home" class="screen">
+  <div class="screen-header">
+    <div>
+      <div class="greeting" id="greeting">Good morning</div>
+      <div class="greeting-name" id="greeting-name">CourtAide</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <a href="https://cadger808.codeberg.page/zephyr" target="_blank" rel="noopener noreferrer"
+         style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;background:linear-gradient(135deg,#06B6D4,#0EA5E9);border-radius:9px;text-decoration:none;font-size:17px;box-shadow:0 2px 10px rgba(6,182,212,.45);flex-shrink:0;transition:transform .15s cubic-bezier(.4,0,.2,1)"
+         title="Get more apps — Zephyr"
+         onmousedown="this.style.transform='scale(0.93)'" onmouseup="this.style.transform='scale(1)'">⚡</a>
+      <div class="avatar" onclick="showScreen('settings')">⚖️</div>
+    </div>
+  </div>
+  <div class="screen-body">
+    <!-- New Case Card -->
+    <div class="hero-card">
+      <div class="hero-label">New Case</div>
+      <div class="new-case-title">Start a new matter</div>
+      <div class="new-case-sub">Select your state and issue type to get step-by-step legal guidance.</div>
+
+      <div class="state-pick-btn" id="state-pick-btn" onclick="openStateModal()">
+        <span id="state-pick-label">Select your state</span>
+        <span>›</span>
+      </div>
+
+      <div class="issue-grid" id="issue-grid"></div>
+
+      <button class="btn-primary" id="start-case-btn" onclick="startCase()" style="opacity:0.4;pointer-events:none">
+        Start with AI Advisor →
+      </button>
+    </div>
+
+    <!-- Active Case -->
+    <div id="active-case-section" class="hidden">
+      <div class="section-title">Active Case</div>
+      <div id="active-case-card"></div>
+    </div>
+
+    <!-- Past Cases -->
+    <div id="past-cases-section">
+      <div class="section-title">Case History</div>
+      <div id="past-cases-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ ADVISOR ══════════════════════ -->
+<div id="advisor" class="screen">
+  <div class="advisor-header">
+    <div class="btn-icon" onclick="navTo('home')" style="font-size:20px;margin-right:4px">←</div>
+    <div class="advisor-avatar">⚖️</div>
+    <div class="advisor-info">
+      <div class="advisor-name">CourtAide Advisor</div>
+      <div class="advisor-status"><div class="status-dot"></div> Online · Ready to help</div>
+    </div>
+    <div class="btn-icon" onclick="navTo('documents')" style="font-size:16px">📄</div>
+    <div class="btn-icon" onclick="runFullAnalysis()" style="font-size:16px">⚡</div>
+    <div class="btn-icon" onclick="clearChat()" style="font-size:16px">🗑️</div>
+  </div>
+  <div id="demo-mode-banner" style="display:none;background:rgba(201,168,76,0.15);border-bottom:1px solid rgba(201,168,76,0.3);padding:8px 14px;font-size:12px;color:#c9a84c;text-align:center">✨ Demo Mode — Showing example responses. Add your API key in Settings for real AI analysis.</div>
+  <div class="chat-body" id="chat-body"></div>
+  <div class="chat-input-area">
+    <div class="chat-input-row">
+      <textarea class="chat-input" id="chat-input" rows="1" placeholder="Type your question..." onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="chat-send" id="chat-send" onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ DOCUMENTS ══════════════════════ -->
+<div id="documents" class="screen">
+  <div class="screen-header">
+    <div class="btn-icon" onclick="navTo('home')" style="font-size:20px;margin-right:8px">←</div>
+    <div style="flex:1">
+      <div style="font-size:22px;font-weight:800">Documents</div>
+      <div style="font-size:14px;color:var(--text-muted);margin-top:2px">Court forms &amp; filings</div>
+    </div>
+    <div class="btn-icon" onclick="navTo('advisor')" style="font-size:16px">💬</div>
+  </div>
+  <div class="doc-case-bar" id="doc-case-bar" style="display:none">
+    <div class="doc-case-label">Active Case</div>
+    <div class="doc-case-name" id="doc-case-name">—</div>
+  </div>
+  <div class="screen-body" id="docs-body">
+    <div class="doc-empty" id="docs-empty">
+      <div class="doc-empty-icon">📄</div>
+      <div class="doc-empty-title">No forms yet</div>
+      <div class="doc-empty-sub">Start a case and chat with the AI Advisor — it will identify the specific court forms you need and list them here.</div>
+      <button class="btn-primary" style="max-width:260px;margin:0 auto" onclick="navTo('advisor')">Open AI Advisor</button>
+    </div>
+    <div id="forms-list" class="hidden"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ SETTINGS ══════════════════════ -->
+<div id="settings" class="screen">
+  <div class="screen-header">
+    <div class="btn-icon" onclick="showScreen('home')">←</div>
+    <div style="font-size:18px;font-weight:700">Profile &amp; Settings</div>
+    <div style="width:44px"></div>
+  </div>
+  <div class="screen-body">
+    <div class="profile-header">
+      <div class="profile-avatar">⚖️</div>
+      <div class="profile-name" id="profile-name">Loading...</div>
+      <div class="profile-sub" id="profile-sub">—</div>
+    </div>
+
+    <div class="disclaimer-box">
+      <div class="disclaimer-title">⚠️ Legal Disclaimer</div>
+      <div class="disclaimer-text">CourtAide provides legal information, not legal advice. It is not a substitute for an attorney. Laws vary by jurisdiction. Always consult a licensed attorney for your specific situation. AI-generated content may contain errors — verify all information before filing any court documents.</div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-label">AI Configuration</div>
+      <div class="settings-card">
+        <div class="settings-row" style="cursor:default">
+          <div class="row-icon" style="background:rgba(27,79,138,0.25)">🔑</div>
+          <div class="row-text">
+            <div class="row-title">Anthropic API Key</div>
+            <input class="settings-input" id="api-key-input" type="password" placeholder="sk-ant-..." oninput="saveApiKey(this.value)">
+          </div>
+        </div>
+        <div class="settings-row" style="cursor:default">
+          <div class="row-icon" style="background:rgba(16,185,129,0.18)">🤖</div>
+          <div class="row-text">
+            <div class="row-title">AI Model</div>
+            <div class="row-sub">claude-sonnet-4-6 · Latest</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-label">Profile</div>
+      <div class="settings-card">
+        <div class="settings-row tappable" onclick="resetProfile()">
+          <div class="row-icon" style="background:rgba(201,168,76,0.18)">👤</div>
+          <div class="row-text">
+            <div class="row-title">Edit Profile</div>
+            <div class="row-sub" id="settings-profile-sub">Name · State</div>
+          </div>
+          <div class="row-chevron">›</div>
+        </div>
+        <div class="settings-row tappable" onclick="clearAllCases()">
+          <div class="row-icon" style="background:rgba(239,68,68,0.18)">🗑️</div>
+          <div class="row-text">
+            <div class="row-title">Clear All Cases</div>
+            <div class="row-sub">Delete all case history</div>
+          </div>
+          <div class="row-chevron">›</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-label">About</div>
+      <div class="settings-card">
+        <div class="settings-row" style="cursor:default">
+          <div class="row-icon" style="background:rgba(99,102,241,0.18)">ℹ️</div>
+          <div class="row-text">
+            <div class="row-title">CourtAide</div>
+            <div class="row-sub">v1.0.0 · Powered by Claude AI</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ BOTTOM NAV ══════════════════════ -->
+<nav id="bottom-nav">
+  <div class="nav-item active" id="nav-home" onclick="navTo('home')">
+    <div class="nav-icon">⚖️</div>
+    <div class="nav-label">Home</div>
+  </div>
+  <div class="nav-item" id="nav-advisor" onclick="navTo('advisor')">
+    <div class="nav-icon">💬</div>
+    <div class="nav-label">Advisor</div>
+  </div>
+  <div class="nav-item" id="nav-documents" onclick="navTo('documents')">
+    <div class="nav-icon">📄</div>
+    <div class="nav-label">Documents</div>
+  </div>
+  <div class="nav-item" id="nav-settings" onclick="showScreen('settings')">
+    <div class="nav-icon">👤</div>
+    <div class="nav-label">Profile</div>
+  </div>
+</nav>
+
+<!-- ══════════════════════ STATE MODAL ══════════════════════ -->
+<div class="modal-overlay" id="state-modal" onclick="closeStateModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Select State</div>
+    <input class="modal-search" id="state-search" type="text" placeholder="Search states..." oninput="filterStates(this.value)">
+    <div class="state-list" id="state-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ DOC VIEW MODAL ══════════════════════ -->
+<div class="modal-overlay" id="doc-view-modal" onclick="closeDocViewModal(event)">
+  <div class="modal-sheet" style="max-height:90vh">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="doc-view-title">Document</div>
+    <div class="doc-view-content" id="doc-view-content"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ TOAST ══════════════════════ -->
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════════════════════════════════
+const US_STATES = [
+  'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
+  'Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa',
+  'Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan',
+  'Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire',
+  'New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio',
+  'Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota',
+  'Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia',
+  'Wisconsin','Wyoming'
+];
+
+const ISSUE_CATEGORIES = [
+  { id: 'family',      icon: '👨‍👩‍👧', label: 'Family Law' },
+  { id: 'criminal',    icon: '🔒',     label: 'Criminal Defense' },
+  { id: 'civil',       icon: '🤝',     label: 'Civil Dispute' },
+  { id: 'landlord',    icon: '🏠',     label: 'Landlord/Tenant' },
+  { id: 'employment',  icon: '💼',     label: 'Employment' },
+  { id: 'smallclaims', icon: '💰',     label: 'Small Claims' },
+  { id: 'traffic',     icon: '🚗',     label: 'Traffic' },
+  { id: 'immigration', icon: '🌎',     label: 'Immigration' },
+  { id: 'bankruptcy',  icon: '📊',     label: 'Bankruptcy' },
+  { id: 'estate',      icon: '📜',     label: 'Estate/Probate' },
+];
+
+// ══════════════════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════════════════
+// Aloha from Pearl City! — CourtAide boots fast at 5AM
+// #ASSUMPTION: performance.now() available on all target devices
+// #ASSUMPTION: localStorage is available — all settings stay local, never sent anywhere
+const perf = { start: performance.now() };
+
+const tryParse = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch(e) { return fallback; } };
+const state = {
+  profile:          tryParse('courtaide_profile', null),
+  currentCase:      tryParse('courtaide_current_case', null),
+  cases:            tryParse('courtaide_cases', []),
+  apiKey:           localStorage.getItem('courtaide_apikey') || '',
+  biometricEnabled: localStorage.getItem('courtaide_biometric') === 'true',
+  authenticated:    false,
+  currentScreen:    'splash',
+  runningIntake:    false,
+  // home screen selection
+  selectedState:    null,
+  selectedIssue:    null,
+};
+
+function saveState() {
+  localStorage.setItem('courtaide_profile', JSON.stringify(state.profile));
+  localStorage.setItem('courtaide_current_case', JSON.stringify(state.currentCase));
+  localStorage.setItem('courtaide_cases', JSON.stringify(state.cases));
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  SCREEN MANAGEMENT
+// ══════════════════════════════════════════════════════════════════════
+const NAV_SCREENS = ['home', 'advisor', 'documents'];
+
+function showScreen(id) {
+  const prev = document.querySelector('.screen.active');
+  if (prev) prev.classList.remove('active');
+  const next = document.getElementById(id);
+  if (next) next.classList.add('active');
+  state.currentScreen = id;
+  const nav = document.getElementById('bottom-nav');
+  const noNav = ['splash', 'auth', 'setup', 'settings', 'advisor'];
+  nav.style.display = noNav.includes(id) ? 'none' : 'flex';
+  ['home','advisor','documents'].forEach(s => {
+    const el = document.getElementById('nav-' + s);
+    if (el) el.classList.toggle('active', s === id);
+  });
+  const navSettings = document.getElementById('nav-settings');
+  if (navSettings) navSettings.classList.toggle('active', id === 'settings');
+}
+
+function navTo(id) {
+  showScreen(id);
+  if (id === 'home') updateHome();
+  if (id === 'advisor') initAdvisor();
+  if (id === 'documents') renderDocuments();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  SPLASH → AUTH → SETUP FLOW
+// ══════════════════════════════════════════════════════════════════════
+function boot() {
+  showScreen('splash');
+  // Populate state select in setup
+  const sel = document.getElementById('setup-state');
+  US_STATES.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s; opt.textContent = s;
+    sel.appendChild(opt);
+  });
+  // Render issue grid on home
+  renderIssueGrid();
+
+  setTimeout(() => {
+    if (!state.profile) {
+      showScreen('setup');
+    } else if (state.biometricEnabled) {
+      showAuthReturn();
+    } else {
+      // Profile exists but biometric not enabled yet — go home
+      state.authenticated = true;
+      enterApp();
+    }
+  }, 2400);
+}
+
+function showAuthReturn() {
+  // Return user: show auto-scanning auth
+  document.getElementById('auth-title').textContent = 'Welcome back, ' + (state.profile?.name?.split(' ')[0] || 'Counselor');
+  document.getElementById('auth-sub').textContent = 'Verifying your identity to access your cases...';
+  document.getElementById('auth-btn').textContent = '🔐 Authenticating...';
+  document.getElementById('auth-btn').disabled = true;
+  document.getElementById('auth-btn').style.opacity = '0.5';
+  document.getElementById('scan-beam').classList.remove('hidden-beam');
+  showScreen('auth');
+
+  // Auto-authenticate after 1.5s
+  setTimeout(() => {
+    document.getElementById('auth-status').textContent = '✓ Identity verified';
+    document.getElementById('auth-status').style.color = '#6EE7B7';
+    setTimeout(() => {
+      state.authenticated = true;
+      enterApp();
+    }, 600);
+  }, 1500);
+}
+
+function showAuthSetup() {
+  // First-time: prompt to enable Face ID
+  document.getElementById('auth-title').textContent = 'Secure your account';
+  document.getElementById('auth-sub').textContent = 'Enable biometric authentication to quickly and securely access your cases.';
+  document.getElementById('auth-btn').textContent = '🔐 Enable Face ID / Fingerprint';
+  document.getElementById('auth-btn').disabled = false;
+  document.getElementById('auth-btn').style.opacity = '1';
+  document.getElementById('scan-beam').classList.add('hidden-beam');
+  showScreen('auth');
+}
+
+function handleAuthBtn() {
+  const btn = document.getElementById('auth-btn');
+  if (btn.disabled) return;
+  // Enable biometric
+  state.biometricEnabled = true;
+  localStorage.setItem('courtaide_biometric', 'true');
+  btn.textContent = '✓ Biometrics Enabled';
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  document.getElementById('auth-status').textContent = 'Face ID enabled successfully';
+  document.getElementById('auth-status').style.color = '#6EE7B7';
+  document.getElementById('scan-beam').classList.remove('hidden-beam');
+  setTimeout(() => {
+    state.authenticated = true;
+    enterApp();
+  }, 1000);
+}
+
+function enterApp() {
+  updateHome();
+  renderDocuments();
+  showScreen('home');
+  document.getElementById('bottom-nav').style.display = 'flex';
+  // Fire deadline alerts after a short delay so screen transition completes first
+  setTimeout(_checkDeadlineNotifications, 1200);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  SETUP
+// ══════════════════════════════════════════════════════════════════════
+function completeSetup() {
+  const name = document.getElementById('setup-name').value.trim();
+  const homeState = document.getElementById('setup-state').value;
+  const dob = document.getElementById('setup-dob').value;
+
+  if (!name) { shakeBtn('setup-footer'); return; }
+  if (!homeState) { shakeEl('setup-state'); return; }
+
+  state.profile = { name, homeState, dob, createdAt: new Date().toISOString() };
+  saveState();
+  updateSettings();
+  showAuthSetup();
+}
+
+function shakeEl(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.animation = 'shake 0.3s ease';
+  el.style.borderColor = 'rgba(239,68,68,0.6)';
+  setTimeout(() => { el.style.animation = ''; el.style.borderColor = ''; }, 300);
+}
+function shakeBtn(cls) {
+  const el = document.querySelector('.' + cls + ' .btn-primary');
+  if (!el) return;
+  el.style.animation = 'shake 0.3s ease';
+  setTimeout(() => el.style.animation = '', 300);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  HOME
+// ══════════════════════════════════════════════════════════════════════
+function renderIssueGrid() {
+  const grid = document.getElementById('issue-grid');
+  grid.innerHTML = ISSUE_CATEGORIES.map(cat => `
+    <div class="issue-card" id="issue-${cat.id}" onclick="selectIssue('${cat.id}', '${cat.label}', this)">
+      <div class="issue-icon">${cat.icon}</div>
+      <div class="issue-label">${cat.label}</div>
+    </div>
+  `).join('');
+}
+
+function updateHome() {
+  if (!state.profile) return;
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Good morning ☀️' : h < 18 ? 'Good afternoon 🌤️' : 'Good evening 🌙';
+  document.getElementById('greeting').textContent = greet;
+  document.getElementById('greeting-name').textContent = state.profile.name;
+
+  // Restore selections if current case exists
+  if (state.currentCase) {
+    state.selectedState = state.currentCase.caseState;
+    state.selectedIssue = state.currentCase.issueType;
+    updateStatePickerUI(state.currentCase.caseState);
+    const issueEl = document.getElementById('issue-' + state.currentCase.issueType);
+    if (issueEl) issueEl.classList.add('selected');
+    checkStartBtn();
+  }
+
+  // Active case
+  const activeSection = document.getElementById('active-case-section');
+  const activeCard = document.getElementById('active-case-card');
+  if (state.currentCase) {
+    activeSection.classList.remove('hidden');
+    const cat = ISSUE_CATEGORIES.find(c => c.id === state.currentCase.issueType);
+    const cs = state.currentCase.caseStrength;
+    const hasStrength = cs && cs.score != null;
+    const col = hasStrength ? (cs.score >= 70 ? '#6EE7B7' : cs.score >= 50 ? '#E0C56E' : '#FCA5A5') : '';
+    const ratingCls = hasStrength ? (cs.score >= 70 ? 'strong' : cs.score >= 50 ? 'moderate' : 'weak') : '';
+    activeCard.innerHTML = `
+      <div class="case-item" onclick="navTo('advisor')">
+        <div class="case-item-icon">${cat ? cat.icon : '⚖️'}</div>
+        <div class="case-item-info">
+          <div class="case-item-title">${state.currentCase.issueLabel}</div>
+          <div class="case-item-sub">${state.currentCase.caseState} · ${(state.currentCase.chatHistory || []).length} messages</div>
+          ${hasStrength ? `
+            <div class="strength-bar"><div class="strength-fill" style="width:${cs.score}%;background:${col}"></div></div>
+            <div class="strength-rating ${ratingCls}">${cs.rating} · ${cs.score}/100</div>
+          ` : ''}
+        </div>
+        <span class="chip chip-gold">Active</span>
+      </div>`;
+  } else {
+    activeSection.classList.add('hidden');
+  }
+
+  // Past cases
+  const pastList = document.getElementById('past-cases-list');
+  const completed = state.cases.filter(c => c !== state.currentCase);
+  if (completed.length === 0) {
+    pastList.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div class="empty-title">No past cases yet</div>
+        <div class="empty-sub">Your completed cases will appear here.</div>
+      </div>`;
+  } else {
+    pastList.innerHTML = completed.slice().reverse().slice(0, 5).map(c => {
+      const cat = ISSUE_CATEGORIES.find(i => i.id === c.issueType);
+      return `
+        <div class="case-item" onclick="loadCase('${c.id}')">
+          <div class="case-item-icon">${cat ? cat.icon : '⚖️'}</div>
+          <div class="case-item-info">
+            <div class="case-item-title">${c.issueLabel}</div>
+            <div class="case-item-sub">${c.caseState} · ${new Date(c.createdAt).toLocaleDateString()}</div>
+          </div>
+          <span class="chip chip-gray">View</span>
+        </div>`;
+    }).join('');
+  }
+
+  updateSettings();
+}
+
+function updateStatePickerUI(stateName) {
+  const btn = document.getElementById('state-pick-btn');
+  const label = document.getElementById('state-pick-label');
+  if (stateName) {
+    btn.classList.add('chosen');
+    label.textContent = '📍 ' + stateName + ' ✓';
+  } else {
+    btn.classList.remove('chosen');
+    label.textContent = 'Select your state';
+  }
+}
+
+function selectIssue(id, label, el) {
+  document.querySelectorAll('.issue-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  state.selectedIssue = id;
+  state.selectedIssueLabel = label;
+  checkStartBtn();
+}
+
+function checkStartBtn() {
+  const btn = document.getElementById('start-case-btn');
+  const ready = state.selectedState && state.selectedIssue;
+  btn.style.opacity = ready ? '1' : '0.4';
+  btn.style.pointerEvents = ready ? 'auto' : 'none';
+}
+
+function startCase() {
+  if (!state.selectedState || !state.selectedIssue) return;
+  const cat = ISSUE_CATEGORIES.find(c => c.id === state.selectedIssue);
+
+  // Archive current case if exists
+  if (state.currentCase) {
+    state.cases.push(state.currentCase);
+  }
+
+  state.currentCase = {
+    id: Date.now().toString(),
+    caseState: state.selectedState,
+    issueType: state.selectedIssue,
+    issueLabel: cat ? cat.label : state.selectedIssueLabel,
+    chatHistory: [],
+    forms: [],
+    caseStrength: { score: null, rating: null },
+    deadlines: [],
+    timeline: null,
+    generatedDocs: [],
+    legalResources: null,
+    createdAt: new Date().toISOString(),
+  };
+  saveState();
+  updateCaseContext();
+  state.runningIntake = true;
+  navTo('advisor');
+  setTimeout(() => {
+    state.runningIntake = false;
+    runAutoIntake();
+  }, 200);
+}
+
+function runAutoIntake() {
+  const c = state.currentCase;
+  if (!c) return;
+  addSystemMessage('⚡ Running full case intake…');
+  const tools = ['assess_case_strength','recommend_legal_strategy','identify_required_forms','calculate_legal_deadlines','cite_relevant_laws'];
+  const prompt = `New ${c.issueLabel} case in ${c.caseState}. Run a full intake: use assess_case_strength, recommend_legal_strategy, identify_required_forms, calculate_legal_deadlines, and cite_relevant_laws. Then greet the user warmly, give a quick summary of the case landscape, and ask for their specific facts.`;
+  callClaude(prompt, true, tools).catch(e => console.error('Auto intake failed:', e));
+}
+
+function runFullAnalysis() {
+  const c = state.currentCase;
+  if (!c) { showToast('No active case'); return; }
+  if (state.currentScreen !== 'advisor') navTo('advisor');
+  addSystemMessage('⚡ Re-running full case analysis…');
+  const tools = ['assess_case_strength','recommend_legal_strategy','identify_required_forms','calculate_legal_deadlines','cite_relevant_laws'];
+  const prompt = `Re-analyze this ${c.issueLabel} case in ${c.caseState} with the full intake pipeline: assess_case_strength, recommend_legal_strategy, identify_required_forms, calculate_legal_deadlines, cite_relevant_laws. Update all assessments based on the conversation so far, then provide a brief updated summary.`;
+  callClaude(prompt, true, tools).catch(e => console.error('Full analysis failed:', e));
+}
+
+function loadCase(id) {
+  const found = state.cases.find(c => c.id === id);
+  if (!found) return;
+  // Swap with current
+  if (state.currentCase) state.cases.push(state.currentCase);
+  state.currentCase = found;
+  state.cases = state.cases.filter(c => c.id !== id);
+  saveState();
+  updateCaseContext();
+  navTo('advisor');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  STATE MODAL
+// ══════════════════════════════════════════════════════════════════════
+function openStateModal() {
+  renderStateList(US_STATES);
+  document.getElementById('state-search').value = '';
+  document.getElementById('state-modal').classList.add('show');
+  setTimeout(() => document.getElementById('state-search').focus(), 300);
+}
+
+function closeStateModal(e) {
+  if (!e || e.target === document.getElementById('state-modal')) {
+    document.getElementById('state-modal').classList.remove('show');
+  }
+}
+
+function renderStateList(list) {
+  const container = document.getElementById('state-list');
+  container.innerHTML = list.map(s => `
+    <div class="state-list-item ${state.selectedState === s ? 'active' : ''}" onclick="pickState('${s}')">${s}</div>
+  `).join('');
+}
+
+function filterStates(query) {
+  const filtered = query ? US_STATES.filter(s => s.toLowerCase().startsWith(query.toLowerCase())) : US_STATES;
+  renderStateList(filtered);
+}
+
+function pickState(stateName) {
+  state.selectedState = stateName;
+  updateStatePickerUI(stateName);
+  checkStartBtn();
+  document.getElementById('state-modal').classList.remove('show');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  ADVISOR / CHAT
+// ══════════════════════════════════════════════════════════════════════
+const CLAUDE_API = 'https://api.anthropic.com/v1/messages';
+const MODEL = 'claude-sonnet-4-6';
+
+function getSystemPrompt() {
+  const c = state.currentCase;
+  if (!c) return 'You are CourtAide, an aggressive AI legal assistant. Help the user understand their legal situation, always using tools to provide structured analysis.';
+  return `You are CourtAide, an aggressive AI legal assistant. You have 10 tools and MUST use them proactively. Never give a plain-text answer when tools can add value.
+
+STATE: ${c.caseState} | ISSUE: ${c.issueLabel}
+
+MANDATORY AGENTIC RULES — follow these exactly:
+1. ALWAYS start by calling assess_case_strength + recommend_legal_strategy on the first or any substantive user message
+2. ALWAYS call identify_required_forms whenever procedures, filing, or paperwork is discussed
+3. ALWAYS call calculate_legal_deadlines when timeline or statutes of limitation come up
+4. ALWAYS call cite_relevant_laws when legal basis or rights are discussed
+5. ALWAYS call generate_legal_document immediately when user asks for any document, letter, or filing
+6. PROACTIVELY offer to build a timeline, find resources, or generate documents — do not wait to be asked
+7. Chain 3–5 tools per response. Example: assess_case_strength → recommend_legal_strategy → identify_required_forms → calculate_legal_deadlines → cite_relevant_laws
+
+INTERVIEW MODE — CRITICAL:
+After the initial intake analysis, your primary job is to INTERVIEW the user to gather their specific facts before giving advice. Do NOT give generic legal information. Instead:
+- Ask 2–3 specific follow-up questions based on what the user says
+- Once you have enough facts, give targeted, specific guidance
+- Always end your response with a question to keep the conversation going
+- If the user gives vague answers, ask for clarification
+- Treat every conversation like a real attorney intake — gather facts first, advise second
+
+PERSONA: You are direct, decisive, and action-oriented. You ask smart questions. You never give generic advice when you can ask one more question to give better advice.
+
+⚠️ Not a licensed attorney. Always recommend consulting one for serious matters. You provide legal information, not legal advice.`;
+}
+
+const LEGAL_TOOLS = [
+  {
+    name: 'analyze_legal_situation',
+    description: 'Understand key facts, timeline, and parties involved in the legal situation. Use this early to get a clear picture of the case.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        situation_summary: { type: 'string', description: 'Brief summary of the legal situation' },
+        key_facts: { type: 'array', items: { type: 'string' }, description: 'Key facts identified' },
+        parties_involved: { type: 'array', items: { type: 'string' }, description: 'Parties involved' },
+        urgency: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'], description: 'Urgency level' },
+        strengths: { type: 'array', items: { type: 'string' }, description: 'Strengths of the user\'s position' },
+        weaknesses: { type: 'array', items: { type: 'string' }, description: 'Potential weaknesses or challenges' }
+      },
+      required: ['situation_summary', 'key_facts', 'urgency']
+    }
+  },
+  {
+    name: 'recommend_legal_strategy',
+    description: 'Recommend common legal strategies for the issue type in the given state, with concrete next steps.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        issue_type: { type: 'string' },
+        state: { type: 'string' },
+        strategies: { type: 'array', items: { type: 'string' }, description: 'Recommended legal strategies' },
+        next_steps: { type: 'array', items: { type: 'string' }, description: 'Concrete next steps in priority order' },
+        timeline_estimate: { type: 'string', description: 'Estimated timeline for resolution' },
+        cost_estimate: { type: 'string', description: 'Estimated cost if self-representing' }
+      },
+      required: ['issue_type', 'state', 'strategies', 'next_steps']
+    }
+  },
+  {
+    name: 'identify_required_forms',
+    description: 'List specific court forms needed for the case. This populates the Documents tab. Use whenever forms are discussed.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        issue_type: { type: 'string' },
+        state: { type: 'string' },
+        forms: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Form name' },
+              number: { type: 'string', description: 'Form number/code if known' },
+              court: { type: 'string', description: 'Court that uses this form' },
+              purpose: { type: 'string', description: 'What this form is for' }
+            },
+            required: ['name', 'purpose']
+          },
+          description: 'List of required court forms'
+        }
+      },
+      required: ['issue_type', 'state', 'forms']
+    }
+  },
+  {
+    name: 'draft_document_section',
+    description: 'Guide the user through filling a specific section of a court form with sample language.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        form_name: { type: 'string' },
+        section: { type: 'string', description: 'Section name or number' },
+        instructions: { type: 'string', description: 'Detailed instructions for this section' },
+        sample_language: { type: 'string', description: 'Sample or template language the user can adapt' },
+        warnings: { type: 'array', items: { type: 'string' }, description: 'Important warnings for this section' }
+      },
+      required: ['form_name', 'section', 'instructions', 'sample_language']
+    }
+  },
+  {
+    name: 'cite_relevant_laws',
+    description: 'Reference relevant statutes, rules, and case law for the state and issue type.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        state: { type: 'string' },
+        issue_type: { type: 'string' },
+        statutes: { type: 'array', items: { type: 'string' }, description: 'Relevant statutes with citations' },
+        key_provisions: { type: 'array', items: { type: 'string' }, description: 'Most relevant provisions to this case' },
+        deadlines: { type: 'array', items: { type: 'string' }, description: 'Important legal deadlines (statutes of limitations, etc.)' }
+      },
+      required: ['state', 'issue_type', 'statutes']
+    }
+  },
+  {
+    name: 'assess_case_strength',
+    description: 'Score the overall strength of the user\'s legal position (0-100) with a rating. Call this first when starting or reviewing any case.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        issue_type: { type: 'string' },
+        state: { type: 'string' },
+        strengths: { type: 'array', items: { type: 'string' }, description: 'Factors supporting user\'s position' },
+        weaknesses: { type: 'array', items: { type: 'string' }, description: 'Factors hurting user\'s position' },
+        evidence: { type: 'array', items: { type: 'string' }, description: 'Evidence available' },
+        score: { type: 'number', description: 'Case strength 0-100' },
+        rating: { type: 'string', enum: ['Weak','Fair','Moderate','Strong','Very Strong'] }
+      },
+      required: ['issue_type', 'state', 'strengths', 'weaknesses', 'score', 'rating']
+    }
+  },
+  {
+    name: 'calculate_legal_deadlines',
+    description: 'Calculate important legal deadlines for the case including statutes of limitations. Use whenever timeline matters.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        issue_type: { type: 'string' },
+        state: { type: 'string' },
+        deadlines: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              description: { type: 'string', description: 'What this deadline is for' },
+              date: { type: 'string', description: 'Deadline date or timeframe' },
+              days_remaining: { type: 'number', description: 'Days remaining (-1 if unknown)' },
+              priority: { type: 'string', enum: ['urgent','warning','ok'] }
+            },
+            required: ['description', 'date', 'priority']
+          }
+        }
+      },
+      required: ['issue_type', 'state', 'deadlines']
+    }
+  },
+  {
+    name: 'generate_legal_document',
+    description: 'Generate a full draft legal document (demand letter, motion, answer, etc.). Use immediately when any document is requested.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        document_type: { type: 'string', description: 'Type of document (e.g. "Demand Letter", "Motion to Continue", "Answer to Complaint")' },
+        issue_type: { type: 'string' },
+        state: { type: 'string' },
+        content: { type: 'string', description: 'Full formatted document content with all sections' },
+        word_count: { type: 'number', description: 'Approximate word count' },
+        facts: { type: 'array', items: { type: 'string' }, description: 'Key facts incorporated' }
+      },
+      required: ['document_type', 'issue_type', 'state', 'content', 'word_count']
+    }
+  },
+  {
+    name: 'build_case_timeline',
+    description: 'Build a chronological timeline of key events. Use when the user describes what happened over time.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        events: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              date: { type: 'string' },
+              description: { type: 'string' },
+              significance: { type: 'string', enum: ['critical','important','background'] }
+            },
+            required: ['date', 'description', 'significance']
+          }
+        }
+      },
+      required: ['events']
+    }
+  },
+  {
+    name: 'find_legal_resources',
+    description: 'Find free legal resources, legal aid, self-help centers for the user\'s state. Use when user mentions cost or needing help.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        state: { type: 'string' },
+        issue_type: { type: 'string' },
+        need_free_help: { type: 'boolean' },
+        resources: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              type: { type: 'string', description: 'Legal Aid, Court Self-Help, Law Clinic, Bar Referral, etc.' },
+              description: { type: 'string' },
+              contact: { type: 'string', description: 'Website or phone' }
+            },
+            required: ['name', 'type', 'description']
+          }
+        }
+      },
+      required: ['state', 'issue_type', 'resources']
+    }
+  }
+];
+
+// Tool execution (client-side)
+function executeTool(name, input) {
+  switch (name) {
+    case 'analyze_legal_situation': {
+      return {
+        analysis_complete: true,
+        situation_summary: input.situation_summary,
+        key_facts_count: (input.key_facts || []).length,
+        key_facts: input.key_facts || [],
+        parties: input.parties_involved || [],
+        urgency: input.urgency,
+        strengths: input.strengths || [],
+        weaknesses: input.weaknesses || [],
+        recommendation: 'Analysis complete. Use recommend_legal_strategy to get next steps.'
+      };
+    }
+    case 'recommend_legal_strategy': {
+      return {
+        strategy_count: (input.strategies || []).length,
+        strategies: input.strategies || [],
+        next_steps: input.next_steps || [],
+        timeline: input.timeline_estimate || 'Varies',
+        cost: input.cost_estimate || 'Varies by complexity',
+        note: 'Consult a licensed attorney to validate this strategy for your specific situation.'
+      };
+    }
+    case 'identify_required_forms': {
+      // Store forms in current case
+      if (state.currentCase) {
+        const newForms = (input.forms || []).map(f => ({
+          ...f,
+          status: 'needed',
+          id: Date.now() + Math.random()
+        }));
+        // Merge without duplicates
+        const existing = state.currentCase.forms || [];
+        newForms.forEach(nf => {
+          if (!existing.find(ef => ef.name === nf.name)) existing.push(nf);
+        });
+        state.currentCase.forms = existing;
+        saveState();
+        renderDocuments();
+      }
+      return {
+        forms_identified: (input.forms || []).length,
+        forms: input.forms || [],
+        message: 'Forms added to your Documents tab. Tap "Documents" to view them.'
+      };
+    }
+    case 'draft_document_section': {
+      return {
+        form: input.form_name,
+        section: input.section,
+        instructions: input.instructions,
+        sample_language: input.sample_language,
+        warnings: input.warnings || [],
+        note: 'Always verify this language with the actual court form and local rules.'
+      };
+    }
+    case 'cite_relevant_laws': {
+      return {
+        state: input.state,
+        issue_type: input.issue_type,
+        statutes: input.statutes || [],
+        key_provisions: input.key_provisions || [],
+        deadlines: input.deadlines || [],
+        disclaimer: 'Laws change frequently. Always verify current statutes at your state legislature website.'
+      };
+    }
+    case 'assess_case_strength': {
+      const strength = { score: input.score ?? 50, rating: input.rating || 'Moderate' };
+      if (state.currentCase) {
+        state.currentCase.caseStrength = strength;
+        saveState();
+        updateHome();
+      }
+      return {
+        score: strength.score, rating: strength.rating,
+        strengths: input.strengths || [], weaknesses: input.weaknesses || [],
+        evidence: input.evidence || [],
+        recommendation: strength.score >= 70 ? 'Strong position — proceed with confidence' :
+          strength.score >= 50 ? 'Moderate position — gather more evidence' :
+          'Weak position — consult an attorney before proceeding'
+      };
+    }
+    case 'calculate_legal_deadlines': {
+      const deadlines = input.deadlines || [];
+      if (state.currentCase) {
+        state.currentCase.deadlines = deadlines;
+        saveState();
+        renderDocuments();
+      }
+      return {
+        deadlines_count: deadlines.length, deadlines,
+        most_urgent: deadlines.find(d => d.priority === 'urgent') || deadlines[0] || null
+      };
+    }
+    case 'generate_legal_document': {
+      const doc = {
+        id: Date.now().toString(), document_type: input.document_type,
+        content: input.content, word_count: input.word_count,
+        createdAt: new Date().toISOString()
+      };
+      if (state.currentCase) {
+        if (!state.currentCase.generatedDocs) state.currentCase.generatedDocs = [];
+        state.currentCase.generatedDocs.push(doc);
+        saveState();
+        renderDocuments();
+      }
+      return { document_type: doc.document_type, word_count: doc.word_count, doc_id: doc.id, message: 'Document generated — view in Documents tab.' };
+    }
+    case 'build_case_timeline': {
+      if (state.currentCase) {
+        state.currentCase.timeline = input.events || [];
+        saveState();
+      }
+      return { events_count: (input.events || []).length, events: input.events || [] };
+    }
+    case 'find_legal_resources': {
+      if (state.currentCase) {
+        state.currentCase.legalResources = input.resources || [];
+        saveState();
+      }
+      return { resources_count: (input.resources || []).length, resources: input.resources || [], state: input.state };
+    }
+    default: return { error: 'Unknown tool: ' + name };
+  }
+}
+
+// Tool result formatting
+function formatToolResult(name, input, result) {
+  switch (name) {
+    case 'analyze_legal_situation':
+      return `<strong>Situation:</strong> ${result.situation_summary}<br>
+        <strong>Urgency:</strong> ${result.urgency}<br>
+        ${result.key_facts.length ? '<strong>Key Facts:</strong><ul>' + result.key_facts.map(f => `<li>${f}</li>`).join('') + '</ul>' : ''}
+        ${result.strengths.length ? '<strong>Strengths:</strong> ' + result.strengths.join('; ') : ''}`;
+    case 'recommend_legal_strategy':
+      return `<strong>Strategies (${result.strategy_count}):</strong>
+        <ul>${result.strategies.map(s => `<li>${s}</li>`).join('')}</ul>
+        <strong>Next Steps:</strong>
+        <ul>${result.next_steps.map((s,i) => `<li>${i+1}. ${s}</li>`).join('')}</ul>
+        <strong>Timeline:</strong> ${result.timeline}`;
+    case 'identify_required_forms':
+      return `<strong>${result.forms_identified} form(s) identified</strong><br>
+        ${result.forms.map(f => `• <strong>${f.name}</strong>${f.number ? ' (' + f.number + ')' : ''} — ${f.purpose}`).join('<br>')}
+        <br><em>✓ Added to your Documents tab</em>`;
+    case 'draft_document_section':
+      return `<strong>Form:</strong> ${result.form} — ${result.section}<br>
+        <strong>Instructions:</strong> ${result.instructions}<br>
+        <strong>Sample Language:</strong><br><em>"${result.sample_language}"</em>
+        ${result.warnings.length ? '<br><strong>⚠️ Warnings:</strong><ul>' + result.warnings.map(w => `<li>${w}</li>`).join('') + '</ul>' : ''}`;
+    case 'cite_relevant_laws':
+      return `<strong>Relevant Statutes for ${result.state}:</strong>
+        <ul>${result.statutes.map(s => `<li>${s}</li>`).join('')}</ul>
+        ${result.deadlines.length ? '<strong>⏰ Deadlines:</strong><ul>' + result.deadlines.map(d => `<li>${d}</li>`).join('') + '</ul>' : ''}
+        <em>⚠️ ${result.disclaimer}</em>`;
+    case 'assess_case_strength': {
+      const pct = result.score;
+      const col = pct >= 70 ? '#6EE7B7' : pct >= 50 ? '#E0C56E' : '#FCA5A5';
+      return `<strong>Case Strength: ${result.rating} (${result.score}/100)</strong>
+        <div style="height:5px;border-radius:3px;background:rgba(255,255,255,0.1);margin:5px 0 4px;overflow:hidden"><div style="height:100%;width:${pct}%;border-radius:3px;background:${col};transition:width 0.8s"></div></div>
+        ${result.strengths.length ? '<strong>✅ Strengths:</strong><ul>' + result.strengths.map(s=>`<li>${s}</li>`).join('') + '</ul>' : ''}
+        ${result.weaknesses.length ? '<strong>⚠️ Weaknesses:</strong><ul>' + result.weaknesses.map(w=>`<li>${w}</li>`).join('') + '</ul>' : ''}
+        <em>${result.recommendation}</em>`;
+    }
+    case 'calculate_legal_deadlines': {
+      if (!result.deadlines.length) return 'No specific deadlines identified.';
+      return `<strong>${result.deadlines_count} Deadline(s) Identified:</strong>
+        ${result.deadlines.map(d => `<div style="padding:3px 0">
+          ${d.priority==='urgent'?'🔴':d.priority==='warning'?'🟡':'🟢'} <strong>${d.description}</strong> — ${d.date}
+          ${d.days_remaining!=null&&d.days_remaining>=0?`<em> (${d.days_remaining} days)</em>`:''}
+        </div>`).join('')}
+        <br><em>✓ Added to Documents tab</em>`;
+    }
+    case 'generate_legal_document':
+      return `<strong>📄 ${result.document_type} Generated</strong><br>~${result.word_count} words · <em>View in Documents tab</em><br><em style="font-size:12px">⚠️ Review before filing — AI drafts need verification.</em>`;
+    case 'build_case_timeline': {
+      return `<strong>📅 Timeline (${result.events_count} events)</strong>
+        ${result.events.slice(0,5).map(e=>`<div style="padding:2px 0">${e.significance==='critical'?'🔴':e.significance==='important'?'🟡':'⚪'} <strong>${e.date}</strong> — ${e.description}</div>`).join('')}
+        ${result.events_count>5?`<em>...and ${result.events_count-5} more</em>`:''}`;
+    }
+    case 'find_legal_resources':
+      return `<strong>🔗 Resources for ${input.state} (${result.resources_count}):</strong>
+        ${result.resources.map(r=>`<div style="padding:4px 0"><strong>${r.name}</strong> <span style="color:var(--text-muted)">(${r.type})</span><br><span style="font-size:12px">${r.description}</span>${r.contact?`<br><span style="color:var(--text-accent);font-size:12px">${r.contact}</span>`:''}</div>`).join('')}`;
+    default:
+      return escapeHtml(JSON.stringify(result, null, 2)).slice(0, 300);
+  }
+}
+
+const TOOL_LABELS = {
+  analyze_legal_situation: '🔍 Situation Analysis',
+  recommend_legal_strategy: '🎯 Legal Strategy',
+  identify_required_forms: '📄 Required Forms',
+  draft_document_section: '✍️ Document Drafting',
+  cite_relevant_laws: '📚 Relevant Laws',
+  assess_case_strength: '⚖️ Case Strength Assessment',
+  calculate_legal_deadlines: '⏰ Legal Deadlines',
+  generate_legal_document: '📝 Document Generation',
+  build_case_timeline: '📅 Case Timeline',
+  find_legal_resources: '🔗 Legal Resources',
+};
+
+// ── Agent Task Bar ──
+function showAgentTaskBar(toolNames) {
+  let bar = document.getElementById('agent-task-bar');
+  if (bar) bar.remove();
+  bar = document.createElement('div');
+  bar.id = 'agent-task-bar';
+  bar.className = 'agent-task-bar';
+  bar.innerHTML = `<div class="agent-task-bar-header">⚡ Agent Working</div>` +
+    toolNames.map(n => `<div class="agent-task-item pending" id="task-${n}">
+      <div class="agent-task-icon">○</div>
+      <div class="agent-task-label">${TOOL_LABELS[n] || n}</div>
+    </div>`).join('');
+  const chatBody = document.getElementById('chat-body');
+  chatBody.parentNode.insertBefore(bar, chatBody);
+}
+
+function startAgentTask(name) {
+  const item = document.getElementById('task-' + name);
+  if (item) {
+    item.className = 'agent-task-item running';
+    item.querySelector('.agent-task-icon').innerHTML = '<span class="task-spinner">⟳</span>';
+  }
+}
+
+function tickAgentTask(name) {
+  const item = document.getElementById('task-' + name);
+  if (item) {
+    item.className = 'agent-task-item done';
+    item.querySelector('.agent-task-icon').textContent = '✓';
+  }
+  // Start next pending item
+  const next = document.querySelector('.agent-task-item.pending');
+  if (next) {
+    next.className = 'agent-task-item running';
+    next.querySelector('.agent-task-icon').innerHTML = '<span class="task-spinner">⟳</span>';
+  }
+}
+
+function hideAgentTaskBar() {
+  const bar = document.getElementById('agent-task-bar');
+  if (bar) {
+    bar.style.transition = 'opacity 0.4s';
+    bar.style.opacity = '0';
+    setTimeout(() => bar.remove(), 400);
+  }
+}
+
+function addSystemMessage(text) {
+  const chatBody = document.getElementById('chat-body');
+  const div = document.createElement('div');
+  div.className = 'system-msg';
+  div.textContent = text;
+  chatBody.appendChild(div);
+  scrollChat();
+}
+
+// ── Advisor init ──
+function updateCaseContext() {
+  // case-ctx-bar removed from UI — no-op
+}
+
+function initAdvisor() {
+  updateCaseContext();
+  const chatBody = document.getElementById('chat-body');
+  if (chatBody.children.length === 0) {
+    renderChatHistory();
+    if (chatBody.children.length === 0 && !state.runningIntake) {
+      addWelcomeMessage();
+    }
+  }
+  // Show demo mode banner when no API key
+  const demoBanner = document.getElementById('demo-mode-banner');
+  if (demoBanner) demoBanner.style.display = state.apiKey ? 'none' : 'block';
+}
+
+function addWelcomeMessage() {
+  const c = state.currentCase;
+  const msg = c
+    ? `Hi, I'm CourtAide ⚖️ I'm here to help with your **${c.issueLabel}** case in **${c.caseState}**.\n\nWhat's going on? Tell me what happened and I'll ask you the right questions.`
+    : `Hi, I'm CourtAide ⚖️\n\nGo to **Home**, pick your state and issue, then come back here — I'll walk you through everything.\n\nOr just tell me what's happening and I'll help.`;
+  addAIMessage(msg);
+}
+
+function sendCaseContext() {
+  const c = state.currentCase;
+  if (!c) return;
+  addWelcomeMessage();
+}
+
+function renderChatHistory() {
+  const chatBody = document.getElementById('chat-body');
+  chatBody.innerHTML = '';
+  const history = state.currentCase?.chatHistory || [];
+  history.forEach(msg => {
+    if (msg.role === 'user') {
+      addUserMessage(msg.text, false);
+    } else if (msg.role === 'assistant') {
+      if (msg.text) addAIMessage(msg.text, false);
+      if (msg.toolCards) {
+        msg.toolCards.forEach(tc => addToolCard(tc.name, tc.input, tc.result, false));
+      }
+    }
+  });
+  if (history.length > 0) {
+    scrollChat();
+  }
+}
+
+// ── Chat UI ──
+function addAIMessage(text, scroll = true) {
+  const chatBody = document.getElementById('chat-body');
+  const div = document.createElement('div');
+  div.className = 'msg-row ai';
+  div.innerHTML = `<div class="msg-avatar">⚖️</div><div class="msg-bubble">${formatMessage(text)}</div>`;
+  chatBody.appendChild(div);
+  if (scroll) scrollChat();
+}
+
+function addUserMessage(text, scroll = true) {
+  const chatBody = document.getElementById('chat-body');
+  const div = document.createElement('div');
+  div.className = 'msg-row user';
+  div.innerHTML = `<div class="msg-avatar user">👤</div><div class="msg-bubble">${escapeHtml(text)}</div>`;
+  chatBody.appendChild(div);
+  if (scroll) scrollChat();
+}
+
+function addToolCard(toolName, input, result, scroll = true) {
+  const chatBody = document.getElementById('chat-body');
+  const div = document.createElement('div');
+  div.className = 'tool-card';
+  div.innerHTML = `
+    <div class="tool-header">
+      <div class="tool-name">${TOOL_LABELS[toolName] || toolName}</div>
+      <span class="chip chip-green" style="font-size:10px">✓ Done</span>
+    </div>
+    <div class="tool-result">${formatToolResult(toolName, input, result)}</div>`;
+  chatBody.appendChild(div);
+  if (scroll) scrollChat();
+}
+
+function addTypingIndicator() {
+  const chatBody = document.getElementById('chat-body');
+  const div = document.createElement('div');
+  div.className = 'msg-row ai'; div.id = 'typing-indicator';
+  div.innerHTML = `<div class="msg-avatar">⚖️</div><div class="msg-bubble"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+  chatBody.appendChild(div);
+  scrollChat();
+}
+
+function removeTypingIndicator() {
+  const el = document.getElementById('typing-indicator');
+  if (el) el.remove();
+}
+
+function scrollChat() {
+  const cb = document.getElementById('chat-body');
+  requestAnimationFrame(() => { cb.scrollTop = cb.scrollHeight; });
+}
+
+function formatMessage(text) {
+  return escapeHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:4px;font-size:13px">$1</code>')
+    .replace(/\n• /g, '<br>• ')
+    .replace(/\n/g, '<br>');
+}
+
+function escapeHtml(text) {
+  return (text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Send / Receive ──
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text || document.getElementById('chat-send').disabled) return;
+  input.value = ''; input.style.height = 'auto';
+  addUserMessage(text);
+  await callClaude(text);
+}
+
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+function clearChat() {
+  if (!confirm('Clear this conversation?')) return;
+  if (state.currentCase) {
+    state.currentCase.chatHistory = [];
+    saveState();
+  }
+  document.getElementById('chat-body').innerHTML = '';
+  document.getElementById('chat-send').disabled = false;
+  addWelcomeMessage();
+}
+
+// ── Agentic Claude API Loop ──
+async function callClaude(userText, isIntake = false, expectedTools = []) {
+  const sendBtn = document.getElementById('chat-send');
+  sendBtn.disabled = true;
+
+  if (expectedTools.length > 0) showAgentTaskBar(expectedTools);
+  if (!isIntake) addTypingIndicator();
+
+  // Demo mode
+  if (!state.apiKey) {
+    if (!isIntake) removeTypingIndicator();
+    await getDemoResponse(userText, isIntake, expectedTools);
+    sendBtn.disabled = false;
+    return;
+  }
+
+  const systemPrompt = getSystemPrompt();
+  const apiMessages = buildApiMessages(userText, isIntake);
+
+  try {
+    let data = await ClaudeAPI.call(state.apiKey, {
+      model: MODEL,
+      max_tokens: 4096,
+      system: systemPrompt,
+      tools: LEGAL_TOOLS,
+      messages: apiMessages
+    });
+    if (!data.content || !Array.isArray(data.content)) throw new Error('Unexpected API response');
+    removeTypingIndicator();
+
+    const sessionToolCards = [];
+    let allMessages = [...apiMessages];
+
+    // Agentic loop
+    while (data.stop_reason === 'tool_use') {
+      const toolUseBlocks = data.content.filter(b => b.type === 'tool_use');
+      const textBlocks = data.content.filter(b => b.type === 'text');
+
+      textBlocks.forEach(b => { if (b.text?.trim()) addAIMessage(b.text); });
+
+      const toolResults = [];
+      for (const tb of toolUseBlocks) {
+        startAgentTask(tb.name);
+        const result = executeTool(tb.name, tb.input);
+        addToolCard(tb.name, tb.input, result);
+        tickAgentTask(tb.name);
+        sessionToolCards.push({ name: tb.name, input: tb.input, result });
+        toolResults.push({ type: 'tool_result', tool_use_id: tb.id, content: JSON.stringify(result) });
+      }
+
+      allMessages = [
+        ...allMessages,
+        { role: 'assistant', content: data.content },
+        { role: 'user', content: toolResults }
+      ];
+
+      addTypingIndicator();
+      response = await fetch(CLAUDE_API, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': state.apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-calls': 'true'
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          max_tokens: 4096,
+          system: systemPrompt,
+          tools: LEGAL_TOOLS,
+          messages: allMessages
+        })
+      });
+      if (!response.ok) throw new Error('API continuation error');
+      data = await response.json();
+      if (!data.content || !Array.isArray(data.content)) throw new Error('Unexpected API response in loop');
+      removeTypingIndicator();
+    }
+
+    hideAgentTaskBar();
+
+    const finalText = data.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+    if (finalText?.trim()) addAIMessage(finalText);
+
+    if (!isIntake) saveChatMsg('user', userText);
+    saveChatMsg('assistant', finalText || '', sessionToolCards);
+
+  } catch (err) {
+    removeTypingIndicator();
+    hideAgentTaskBar();
+    const msg = err.message.includes('401') ? 'Invalid API key. Please update it in Settings → Profile.' :
+      err.message.includes('Failed to fetch') ? 'Connection error. Check your internet connection.' :
+      `Error: ${err.message}`;
+    addAIMessage(`⚠️ ${msg}\n\nTip: Add your Anthropic API key in Settings to unlock full AI capabilities.`);
+  }
+
+  sendBtn.disabled = false;
+}
+
+function buildApiMessages(newUserText, isIntake = false) {
+  const messages = [];
+  if (!isIntake) {
+    const history = (state.currentCase?.chatHistory || []).slice(-16);
+    history.forEach(msg => {
+      if (msg.role === 'user' && msg.text) {
+        messages.push({ role: 'user', content: msg.text });
+      } else if (msg.role === 'assistant' && msg.text) {
+        messages.push({ role: 'assistant', content: msg.text });
+      }
+    });
+  }
+  messages.push({ role: 'user', content: newUserText });
+  return messages;
+}
+
+function saveChatMsg(role, text, toolCards) {
+  if (!state.currentCase) return;
+  if (!state.currentCase.chatHistory) state.currentCase.chatHistory = [];
+  state.currentCase.chatHistory.push({ role, text, toolCards });
+  if (state.currentCase.chatHistory.length > 40) {
+    state.currentCase.chatHistory = state.currentCase.chatHistory.slice(-40);
+  }
+  saveState();
+}
+
+// ── Issue-specific intake interview questions ──
+function getIntakeInterview(issueType, issueLabel, state) {
+  const q = {
+    traffic: `**1.** What type of violation? *(speeding, red light, stop sign, DUI, reckless driving, accident, suspended license?)*\n**2.** Did you receive a citation or summons? What is the charge/fine amount?\n**3.** When did this happen, and where exactly?\n**4.** Any prior traffic violations in the last 3 years?\n**5.** Do you want to fight the ticket, reduce the fine, or just minimize the impact on your record?`,
+    criminal: `**1.** What are you charged with? *(misdemeanor or felony?)*\n**2.** Have you been arrested, cited, or just contacted by police?\n**3.** Do you have a court date set? If so, when?\n**4.** Do you have an attorney, or are you representing yourself?\n**5.** What outcome are you hoping for? *(dismissal, reduced charge, plea deal, trial?)*`,
+    family: `**1.** What is the specific issue? *(divorce, custody, child support, adoption, restraining order?)*\n**2.** Are you married, and if so, how long?\n**3.** Are children involved? If so, ages and current living situation?\n**4.** Is the other party cooperative or hostile?\n**5.** What outcome are you seeking?`,
+    landlord: `**1.** Are you the landlord or the tenant?\n**2.** What is the issue? *(eviction, security deposit, repairs, lease dispute, illegal entry?)*\n**3.** Do you have a written lease? When does/did it expire?\n**4.** Have you received any written notices? If so, what type and when?\n**5.** What outcome do you want? *(stay in unit, get deposit back, stop harassment?)*`,
+    employment: `**1.** What happened? *(wrongful termination, discrimination, unpaid wages, harassment, retaliation?)*\n**2.** Are you currently employed, recently fired, or still working there?\n**3.** When did the incident(s) occur?\n**4.** Have you reported it internally to HR or a supervisor?\n**5.** Do you have documentation — emails, written warnings, pay stubs?`,
+    civil: `**1.** Who are the parties involved? *(individual, business, government?)*\n**2.** What happened and when?\n**3.** What is the dollar amount or damages involved?\n**4.** Do you have a written contract or agreement?\n**5.** Have you tried to resolve this without court? What happened?`,
+    smallclaims: `**1.** Who owes you money or property, and why?\n**2.** What is the exact dollar amount you're claiming?\n**3.** When did the incident or debt originate?\n**4.** Have you already sent a demand letter or tried to settle?\n**5.** Do you have receipts, contracts, or written evidence?`,
+    immigration: `**1.** What is your current immigration status? *(visa type, green card, undocumented?)*\n**2.** What is the specific issue? *(deportation, visa renewal, naturalization, asylum?)*\n**3.** Have you received any notices from USCIS or ICE?\n**4.** How long have you been in the U.S.?\n**5.** Do you currently have an immigration attorney?`,
+    bankruptcy: `**1.** What type of debt is the biggest problem? *(credit cards, medical, mortgage, student loans, business?)*\n**2.** Approximately how much total debt do you have?\n**3.** Are you employed? What is your monthly income vs. expenses?\n**4.** Have any creditors filed lawsuits or garnished wages?\n**5.** Have you filed bankruptcy before?`,
+    estate: `**1.** What is the situation? *(someone passed away, creating a will, trust setup, probate?)*\n**2.** Did the deceased leave a will?\n**3.** What assets are involved? *(property, bank accounts, investments?)*\n**4.** Are there disputes among heirs or beneficiaries?\n**5.** What is your role? *(executor, heir, surviving spouse, creditor?)*`,
+  };
+  return q[issueType] || `**1.** Describe exactly what happened and when.\n**2.** Who are the other parties involved?\n**3.** What evidence or documents do you have?\n**4.** Have you already taken any legal steps?\n**5.** What outcome are you hoping to achieve?`;
+}
+
+// ── Demo responses (async, agentic) ──
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function getDemoResponse(text, isIntake = false, expectedTools = []) {
+  const c = state.currentCase;
+  const issue = c?.issueLabel || 'legal';
+  const st = c?.caseState || 'your state';
+
+  if (isIntake) {
+    // Simulate the agentic intake pipeline
+    const tools = expectedTools.length > 0 ? expectedTools :
+      ['assess_case_strength','recommend_legal_strategy','identify_required_forms','calculate_legal_deadlines','cite_relevant_laws'];
+
+    if (expectedTools.length === 0) showAgentTaskBar(tools);
+
+    for (let i = 0; i < tools.length; i++) {
+      const toolName = tools[i];
+      startAgentTask(toolName);
+      await delay(500 + i * 350);
+      const fakeInput = getDemoToolInput(toolName, c);
+      const result = executeTool(toolName, fakeInput);
+      addToolCard(toolName, fakeInput, result);
+      tickAgentTask(toolName);
+      await delay(150);
+    }
+
+    hideAgentTaskBar();
+    await delay(300);
+
+    const msg = `I've looked over your **${issue}** case in **${st}**. Tell me what happened — what's the situation?`;
+    addAIMessage(msg);
+    saveChatMsg('assistant', msg, []);
+    return;
+  }
+
+  const lower = text.toLowerCase();
+
+  addTypingIndicator();
+  await delay(800);
+  removeTypingIndicator();
+
+  let response;
+  const issueType = c?.issueType || 'civil';
+
+  if (lower.includes('speed') || lower.includes('mph') || lower.includes('ticket') || lower.includes('citation') || lower.includes('fine')) {
+    response = `Got it. Was this your first offense, and do you have a court date set?`;
+  } else if (lower.includes('dui') || lower.includes('dwi') || lower.includes('drunk') || lower.includes('alcohol')) {
+    response = `DUI is serious. Did you take a breathalyzer or blood test, and is this your first offense?`;
+  } else if (lower.includes('evict') || lower.includes('landlord') || lower.includes('rent') || lower.includes('tenant') || lower.includes('lease')) {
+    response = `Are you the tenant or the landlord? And what reason was given?`;
+  } else if (lower.includes('fired') || lower.includes('terminated') || lower.includes('laid off') || lower.includes('job') || lower.includes('boss')) {
+    response = `Were you given a reason when they let you go? And do you have anything in writing?`;
+  } else if (lower.includes('divorce') || lower.includes('separat') || lower.includes('spouse') || lower.includes('husband') || lower.includes('wife')) {
+    response = `Are there kids involved, and is the other party cooperative or fighting this?`;
+  } else if (lower.includes('custody') || lower.includes('child') || lower.includes('visitation')) {
+    response = `Where is the child living now, and what's prompting the custody dispute?`;
+  } else if (lower.includes('accident') || lower.includes('crash') || lower.includes('injury') || lower.includes('hurt')) {
+    response = `Was anyone injured, and was a police report filed?`;
+  } else if (lower.includes('contract') || lower.includes('owe') || lower.includes('paid') || lower.includes('money')) {
+    response = `Is there a written agreement, and how much money are we talking about?`;
+  } else if (lower.includes('form') || lower.includes('document') || lower.includes('file') || lower.includes('paper')) {
+    response = `Have you filed anything yet, or is this your first step?`;
+  } else {
+    response = `Can you give me a little more detail — what exactly happened, and when?`;
+  }
+
+  addAIMessage(response);
+  saveChatMsg('user', text);
+  saveChatMsg('assistant', response);
+}
+
+function getDemoToolInput(toolName, c) {
+  const issue = c?.issueType || 'civil';
+  const label = c?.issueLabel || 'Civil Dispute';
+  const st = c?.caseState || 'California';
+
+  const defaults = {
+    assess_case_strength: {
+      issue_type: label, state: st, score: 68, rating: 'Strong',
+      strengths: ['Documentation available', 'Clear timeline of events', 'Witnesses identified'],
+      weaknesses: ['No prior legal representation', 'Limited financial resources'],
+      evidence: ['Written communications', 'Financial records', 'Photographs']
+    },
+    recommend_legal_strategy: {
+      issue_type: label, state: st,
+      strategies: ['Gather and organize all evidence immediately', 'File in the appropriate court within deadline', 'Request mediation as cost-effective alternative'],
+      next_steps: ['Document everything with dates and witnesses', 'File complaint at ' + st + ' Superior Court', 'Serve the other party per ' + st + ' rules', 'Attend all hearings — no missed dates'],
+      timeline_estimate: '6–18 months', cost_estimate: '$200–$600 filing fees (waiver available)'
+    },
+    identify_required_forms: {
+      issue_type: label, state: st,
+      forms: [
+        { name: 'Complaint / Petition', number: 'General Civil', court: st + ' Superior Court', purpose: 'Initiates your legal action', status: 'needed' },
+        { name: 'Summons', number: 'SUM-100', court: st + ' Superior Court', purpose: 'Notifies defendant of the lawsuit', status: 'needed' },
+        { name: 'Proof of Service', court: st + ' Superior Court', purpose: 'Confirms defendant was properly served', status: 'needed' }
+      ]
+    },
+    calculate_legal_deadlines: {
+      issue_type: label, state: st,
+      deadlines: [
+        { description: 'Statute of Limitations — file complaint', date: '2 years from incident date', days_remaining: 347, priority: 'ok' },
+        { description: 'Serve defendant after filing', date: '60 days from filing date', days_remaining: 60, priority: 'warning' },
+        { description: 'Respond to any cross-complaint', date: '30 days after service', days_remaining: 30, priority: 'warning' }
+      ]
+    },
+    cite_relevant_laws: {
+      state: st, issue_type: label,
+      statutes: [st + ' Code of Civil Procedure § 335.1 (Statute of Limitations)', st + ' Code of Civil Procedure § 412.20 (Summons Requirements)', st + ' Evidence Code § 1200 (Hearsay Rule)'],
+      key_provisions: ['File within the statute of limitations or lose your right to sue', 'Defendant must be properly served to have jurisdiction'],
+      deadlines: ['2 years from date of injury for most civil claims', '30 days to respond after service of process']
+    },
+    generate_legal_document: {
+      document_type: 'Demand Letter', issue_type: label, state: st,
+      content: `[YOUR NAME]\n[YOUR ADDRESS]\n[DATE]\n\nRE: Demand for Resolution — ${label} Matter\n\nDear [OPPOSING PARTY],\n\nI am writing to formally demand resolution of the ${label.toLowerCase()} dispute between us. Despite prior communications, this matter remains unresolved.\n\n[DESCRIBE THE FACTS AND WHAT YOU ARE DEMANDING]\n\nIf I do not receive a satisfactory response within 30 days, I will have no choice but to pursue my legal remedies including filing a complaint in ${st} Superior Court.\n\nSincerely,\n[YOUR NAME]`,
+      word_count: 120, facts: ['Incident occurred', 'Communication attempted', 'No resolution reached']
+    },
+    build_case_timeline: {
+      events: [
+        { date: 'Initial Incident', description: 'The underlying dispute began', significance: 'critical' },
+        { date: 'First Contact', description: 'Attempted informal resolution', significance: 'important' },
+        { date: 'No Response', description: 'Other party failed to respond', significance: 'important' },
+        { date: 'Today', description: 'Seeking legal guidance', significance: 'background' }
+      ]
+    },
+    find_legal_resources: {
+      state: st, issue_type: label, need_free_help: true,
+      resources: [
+        { name: st + ' Legal Aid', type: 'Legal Aid', description: 'Free civil legal help for low-income residents', contact: 'Search "' + st + ' Legal Aid" online' },
+        { name: st + ' Courts Self-Help Center', type: 'Court Self-Help', description: 'Free forms and procedural assistance at most courthouses', contact: 'Search "' + st + ' court self-help center" online' },
+        { name: st + ' State Bar Lawyer Referral', type: 'Bar Referral', description: 'Find a local attorney — first consultation often free or low-cost', contact: 'calbar.ca.gov' }
+      ]
+    }
+  };
+  return defaults[toolName] || { issue_type: label, state: st };
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  DOCUMENTS
+// ══════════════════════════════════════════════════════════════════════
+function renderDocuments() {
+  const c = state.currentCase;
+  const forms = c?.forms || [];
+  const deadlines = c?.deadlines || [];
+  const generatedDocs = c?.generatedDocs || [];
+  const empty = document.getElementById('docs-empty');
+  const list = document.getElementById('forms-list');
+  const bar = document.getElementById('doc-case-bar');
+  const caseName = document.getElementById('doc-case-name');
+
+  if (c) {
+    bar.style.display = 'block';
+    caseName.textContent = c.issueLabel + ' · ' + c.caseState;
+  } else {
+    bar.style.display = 'none';
+  }
+
+  const hasContent = forms.length > 0 || deadlines.length > 0 || generatedDocs.length > 0;
+  if (!hasContent) {
+    empty.classList.remove('hidden');
+    list.classList.add('hidden');
+    return;
+  }
+
+  empty.classList.add('hidden');
+  list.classList.remove('hidden');
+  let html = '';
+
+  // Section A — Deadlines
+  if (deadlines.length > 0) {
+    html += '<div class="section-title">⏰ Deadlines</div>';
+    html += deadlines.map(d => {
+      const cls = d.priority === 'urgent' ? 'urgent' : d.priority === 'warning' ? 'warning' : 'ok';
+      const icon = d.priority === 'urgent' ? '🔴' : d.priority === 'warning' ? '🟡' : '🟢';
+      return `<div class="deadline-item ${cls}">
+        <div class="deadline-icon">${icon}</div>
+        <div class="deadline-text">${escapeHtml(d.description)}<br><span style="font-weight:400;color:var(--text-muted);font-size:12px">${escapeHtml(d.date)}</span></div>
+        ${d.days_remaining != null && d.days_remaining >= 0 ? `<div class="deadline-days">${d.days_remaining}d</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // Section B — Court Forms
+  if (forms.length > 0) {
+    html += '<div class="section-title">📋 Court Forms</div>';
+    html += forms.map(f => `
+      <div class="form-card">
+        <div class="form-status ${f.status || 'needed'}"></div>
+        <div class="form-info">
+          <div class="form-name">${escapeHtml(f.name)}</div>
+          ${f.number ? `<div class="form-number">Form ${escapeHtml(f.number)}</div>` : ''}
+          <div class="form-court">${escapeHtml(f.court || f.purpose || '')}</div>
+        </div>
+        <button class="fill-btn" onclick="fillFormWithAI('${escapeHtml(f.name).replace(/'/g,"\\'")}')">Fill with AI</button>
+      </div>
+    `).join('');
+  }
+
+  // Section C — Generated Documents
+  if (generatedDocs.length > 0) {
+    html += '<div class="section-title">📝 Generated Documents</div>';
+    html += generatedDocs.map(doc => `
+      <div class="gen-doc-card">
+        <div class="gen-doc-icon">📄</div>
+        <div class="gen-doc-info">
+          <div class="gen-doc-name">${escapeHtml(doc.document_type)}</div>
+          <div class="gen-doc-meta">~${doc.word_count} words · ${new Date(doc.createdAt).toLocaleDateString()}</div>
+        </div>
+        <button class="view-doc-btn" onclick="viewGeneratedDoc('${doc.id}')">View Draft</button>
+      </div>
+    `).join('');
+  }
+
+  // Export button header  // Aloha from Pearl City!
+  if (c && hasContent) {
+    html = `<div style="display:flex;justify-content:flex-end;padding:0 0 12px">
+      <button onclick="exportCaseSummary()"
+        style="padding:7px 18px;border-radius:20px;font-size:12px;font-weight:600;
+               border:1px solid rgba(107,142,255,0.45);background:rgba(107,142,255,0.1);
+               color:#A8BBFF;cursor:pointer;letter-spacing:0.3px;
+               transition:all 0.2s cubic-bezier(0.4,0,0.2,1)">
+        Export Summary
+      </button>
+    </div>` + html;
+  }
+
+  list.innerHTML = html;
+}
+
+function exportCaseSummary() {
+  const c = state.currentCase;
+  if (!c) { showToast('No active case to export'); return; }
+
+  const date = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const deadlines = (c.deadlines || []).map(d => `
+    <tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb">${d.description || ''}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb">${d.date || ''}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:${d.priority==='urgent'?'#dc2626':d.priority==='warning'?'#d97706':'#16a34a'}">
+        ${d.days_remaining != null ? d.days_remaining + ' days' : '—'}
+      </td>
+    </tr>`).join('');
+
+  const forms = (c.forms || []).map(f => `
+    <li style="margin-bottom:6px"><strong>${f.name}</strong>${f.number ? ` (Form ${f.number})` : ''}${f.court ? ` — ${f.court}` : ''}</li>`).join('');
+
+  const docs = (c.generatedDocs || []).map(doc => `
+    <div style="margin-bottom:24px">
+      <h3 style="font-size:16px;font-weight:600;margin:0 0 8px;color:#1e40af">${doc.document_type}</h3>
+      <pre style="white-space:pre-wrap;font-family:serif;font-size:13px;line-height:1.7;
+                  background:#f8fafc;padding:16px;border-radius:6px;border:1px solid #e2e8f0">${doc.content}</pre>
+    </div>`).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CourtAide — Case Summary</title>
+<style>
+  body{font-family:Georgia,serif;max-width:760px;margin:40px auto;padding:0 24px;color:#111;line-height:1.6}
+  h1{font-size:24px;font-weight:700;margin:0 0 4px}
+  h2{font-size:18px;font-weight:700;margin:24px 0 10px;border-bottom:2px solid #1e40af;padding-bottom:6px;color:#1e3a8a}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{background:#1e40af;color:white;padding:8px 12px;text-align:left}
+  .meta{color:#6b7280;font-size:13px;margin-bottom:24px}
+  footer{margin-top:40px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;text-align:center}
+</style>
+</head>
+<body>
+<h1>Case Summary — ${escapeHtml(c.issueLabel || 'Legal Matter')}</h1>
+<div class="meta">
+  ${escapeHtml(c.caseState || '')} · Exported ${date} · CourtAide
+</div>
+
+${deadlines ? `<h2>⏰ Deadlines</h2>
+<table><thead><tr><th>Deadline</th><th>Date</th><th>Time Remaining</th></tr></thead>
+<tbody>${deadlines}</tbody></table>` : ''}
+
+${forms ? `<h2>📋 Required Court Forms</h2><ul>${forms}</ul>` : ''}
+
+${docs ? `<h2>📝 Generated Documents</h2>${docs}` : ''}
+
+<footer>Generated by CourtAide · For informational purposes only · Not legal advice</footer>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `courtaide-${(c.issueLabel || 'case').toLowerCase().replace(/\s+/g,'-')}-${Date.now()}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Summary exported');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  DEADLINE NOTIFICATIONS
+//  #ASSUMPTION: Notification API available in target browsers (Chrome/Brave)
+//  #ASSUMPTION: deadlines with days_remaining <= 3 are genuinely urgent
+// ══════════════════════════════════════════════════════════════════════
+async function _checkDeadlineNotifications() {
+  const deadlines = state.currentCase?.deadlines || [];
+  const urgent = deadlines.filter(d => d.days_remaining != null && d.days_remaining >= 0 && d.days_remaining <= 3);
+  if (!urgent.length) return;
+  if (!('Notification' in window)) return;
+
+  if (Notification.permission === 'default') {
+    const perm = await Notification.requestPermission().catch(() => 'denied');
+    if (perm !== 'granted') return;
+  }
+  if (Notification.permission !== 'granted') return;
+
+  urgent.forEach(d => {
+    const timeLabel = d.days_remaining === 0 ? 'DUE TODAY' : `${d.days_remaining} day${d.days_remaining !== 1 ? 's' : ''} remaining`;
+    // #ASSUMPTION: tag deduplication prevents repeat notifications for same deadline
+    new Notification('⚖️ CourtAide Deadline', {
+      body: `${d.description} — ${timeLabel}`,
+      icon: './icons/icon-192.png',
+      tag: `ca-deadline-${d.description.slice(0, 30).replace(/\s/g,'-')}`
+    });
+  });
+}
+
+// Re-check when user returns to tab
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.authenticated) {
+    _checkDeadlineNotifications();
+  }
+});
+
+function viewGeneratedDoc(docId) {
+  const doc = state.currentCase?.generatedDocs?.find(d => d.id === docId);
+  if (!doc) return;
+  document.getElementById('doc-view-title').textContent = doc.document_type;
+  document.getElementById('doc-view-content').textContent = doc.content;
+  document.getElementById('doc-view-modal').classList.add('show');
+}
+
+function closeDocViewModal(e) {
+  if (!e || e.target === document.getElementById('doc-view-modal')) {
+    document.getElementById('doc-view-modal').classList.remove('show');
+  }
+}
+
+function fillFormWithAI(formName) {
+  const msg = `Help me fill out the "${formName}" form. Guide me through each section step by step.`;
+  document.getElementById('chat-input').value = msg;
+  navTo('advisor');
+  setTimeout(sendMessage, 300);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════════════════════════════════
+function updateSettings() {
+  if (!state.profile) return;
+  document.getElementById('profile-name').textContent = state.profile.name;
+  document.getElementById('profile-sub').textContent = state.profile.homeState + (state.profile.dob ? ' · DOB: ' + state.profile.dob : '');
+  document.getElementById('settings-profile-sub').textContent = state.profile.name + ' · ' + state.profile.homeState;
+  document.getElementById('api-key-input').value = state.apiKey;
+}
+
+function saveApiKey(val) {
+  state.apiKey = val;
+  localStorage.setItem('courtaide_apikey', val);
+}
+
+function resetProfile() {
+  if (!confirm('This will take you back to the setup screen. Continue?')) return;
+  state.profile = null;
+  state.biometricEnabled = false;
+  localStorage.removeItem('courtaide_profile');
+  localStorage.removeItem('courtaide_biometric');
+  showScreen('setup');
+}
+
+function clearAllCases() {
+  if (!confirm('Delete all case history? This cannot be undone.')) return;
+  state.cases = [];
+  state.currentCase = null;
+  saveState();
+  renderDocuments();
+  updateHome();
+  showToast('All cases cleared');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════════════════════
+function showToast(msg) {
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:calc(var(--nav-h) + var(--safe-bottom) + 20px);left:50%;transform:translateX(-50%);background:rgba(15,30,55,0.97);border:1px solid rgba(37,99,235,0.5);color:white;padding:12px 22px;border-radius:50px;font-size:14px;font-weight:600;z-index:300;backdrop-filter:blur(12px);white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.5);opacity:0;transition:opacity 0.3s';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => { toast.style.opacity = '1'; });
+  setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2500);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════════════════════════════
+boot();
+</script>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js")
+          .then(r => console.log("SW registered:", r.scope))
+          .catch(e => console.error("SW error:", e));
+      });
+    }
+  </script>
+  <!-- AI Avatar Bot -->
+  <div id="sw-avatar" data-context="AI legal assistant helping pro se litigants with court filings, motions, and legal strategy"></div>
+<script src="./api-client.js"></script>
+  <script src="./avatar-widget.js"></script>
+  <script src="./share-widget.js"></script>
+  <!-- Zephyr distribution network -->
+  <script src="https://cadger808.codeberg.page/zephyr/widget.js"></script>
+</body>
+</html>
